@@ -134,20 +134,20 @@ Part V 数据库设计
 ---
 
 1. 用户数据库
-- 需要存储的数据：所有用户的账户，每一个账户以键值对形式，其中UserID为key，Password,Privilege,Username为value
+- 需要存储的数据：所有用户的账户，每一个账户以键值对形式，其中`UserID`为key，`Password`,`Privilege`,`Username`为value
   
 - 存储方式：块状链表
 
 2. 图书数据库
-- 需要存储的数据：所有库存的图书，每一本图书以键值对形式，其中ISBN为key，Bookname,Author,Keyword,Price，Quantity为value
+- 需要存储的数据：所有库存的图书，每一本图书以键值对形式，其中`ISBN`为key，`Bookname`,`Author`,`Keyword`,`Price`，`Quantity`为value
 
 - 存储方式：块状链表
 3. 日志数据库
-- 需要存储的数据：按照操作时间存入所有系统执行的操作，包括UserID,Operationtype,Income，Expense。
+- 需要存储的数据：按照操作时间存入所有系统执行的操作，包括`UserID`,`Operationtype`,`Income`，`Expense`。
 
 - 存储方式：直接写入文件
 4. 交易数据库 
-- 需要存储的数据：一个表示收支的double型变量Profit，正数代表收入，负数代表支出
+- 需要存储的数据：一个表示收支的double型变量`Profit`，正数代表收入，负数代表支出
 
 - 存储方式：直接写入文件
 
@@ -156,14 +156,22 @@ Part V 数据库设计
 Part VI 类、结构体设计
 ---
 ### 类
-`User`类：用于封装用户信息
+`User`类：用于封装用户信息 
+
 `UserOperation`类：用于实现对于用户账户的操作，如插入、删除、修改等
+
 `UserDatabase`类：用于存储用户的账户信息
+
 `Book`类：用于封装图书信息
+
 `BookOperation`类：用于实现对于图书信息的操作，如插入、删除、修改等
+
 `BookDatabase`类：用于存储图书信息
+
 `Log`类：用于封装工作日志信息
+
 `LogDatabase`类：用于存储工作日志信息
+
 `DealDatabase`类：用于存储收入支出等信息
 
 ### 结构体

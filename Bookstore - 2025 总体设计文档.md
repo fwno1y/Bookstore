@@ -40,6 +40,7 @@ Part II 主体逻辑说明
 Part III 代码文件结构
 ---
 
+```
 Bookstore - 2025
 ├── include
 │   ├── book.h
@@ -53,9 +54,11 @@ Bookstore - 2025
 │   ├── log.cpp
 │   ├── main.cpp
 │   └── user.cpp
+```
+
 
 main函数与各个类的关系：
-（具体类参见**Part VI**）
+（具体类参见 **Part VI**）
 在main函数中创建UserDatabase类作为用户的数据库
 在main函数中创建BookDatabase类作为用户的数据库
 在main函数中创建LogDatabase类作为用户的数据库

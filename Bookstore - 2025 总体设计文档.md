@@ -45,7 +45,6 @@ Bookstore - 2025
 ├── include
 │   ├── book.h
 │   ├── book_database.h
-│   ├── log.h
 │   ├── log_database.h
 │   ├── user.h
 │   └── user_database.h
@@ -161,11 +160,10 @@ Part VI 类、结构体设计
 
 `BookDatabase`类：用于存储图书信息，并实现对于图书信息的操作，如插入、删除、修改等
 
-`Log`类：用于封装工作日志信息
+`DealDatabase`类：用于存储收支信息
 
 `LogDatabase`类：用于存储工作日志信息
 
-`DealDatabase`类：用于存储收入支出等信息
 
 ### 结构体
 `User`结构体：用于封装用户信息 

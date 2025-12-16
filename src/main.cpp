@@ -1,3 +1,12 @@
-//
-// Created by 36433 on 2025/12/11.
-//
+#include <iostream>
+#include <vector>
+#include "book_database.h"
+#include "log_database.h"
+#include "user_database.h"
+int main() {
+    BookDatabase BookDatabase;
+    UserDatabase UserDatabase;
+    LogDatabase LogDatabase;
+    std::vector<std::string> logstack;
+
+}

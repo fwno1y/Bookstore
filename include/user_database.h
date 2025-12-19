@@ -3,48 +3,71 @@
 #include <iostream>
 #include "user.h"
 #include <fstream>
+#include <vector>
+const int BLOCKSIZE = 100;
+//当前用户状态
+struct CurrentUser {
+    User user;
+    std::string selected_book;//当前选择图书的ISBN
+
+    CurrentUser(const User& User, const std::string& Book);
+};
+
 class UserDatabase {
 private:
-    std::fstream file;
+    std::fstream user_file;
     std::string file_name;
-    long head_block = -1;
-    long tail_block = -1;
-    long free_head_block = -1;
+    std::vector<CurrentUser> Login_stack;
 
-    void read_block(long pos, User& User);
+    struct BlockNode {
+        User users[BLOCKSIZE];
+        int size{};
+        int next_block{};
 
-    void write_block(long pos, User& User);
+        BlockNode();
 
-    long allocate_block();
+        void read(std::fstream& file);
 
-    void free_block(long pos);
+        void write(std::fstream& file);
+    };
 
-    void split_block(long pos, User& User);
+    void read_block(std::fstream& file, BlockNode& node, int pos);
 
-    void try_merge_blocks(long pos1, long pos2);
+    void write_block(std::fstream& file, BlockNode& node, int pos);
 
-    long find_block(std::string& UserID);
+    bool insert(const User& user);
+
+    bool erase(const std::string& UserID);
+
+    User* find(const std::string& UserID);
+
+    bool update(const User& user);
 public:
-    UserDatabase();
+    explicit UserDatabase(const std::string& user_file);
 
     ~UserDatabase();
 
-    void initialize() {
-
-    }
-    //登录账户和注销账户由main.cpp的登录栈完成
+    void initialize();
+    //登录账户
+    bool Login(const std::string& UserID, const std::string& Password);
+    //注销账户
+    bool Logout();
     //注册账户
-    void Register(const std::string & UserID, const std::string& Password, const std::string& Username);
+    bool Register(const std::string& UserID, const std::string& Password, const std::string& Username);
     //修改密码
-    void ChangePassword(const std::string& UserID, const std::string& CurrentPassword, const std::string& NewPassword);
+    bool ChangePassword(const std::string& UserID, const std::string& CurrentPassword, const std::string& NewPassword);
     //创建账户
-    void UserAdd(const std::string & UserID, const std::string& Password, int Privilege, const std::string& Username);
+    bool UserAdd(const std::string& UserID, const std::string& Password, int Privilege, const std::string& Username);
     //删除账户
-    void Delete(const std::string& UserID);
+    bool Delete(const std::string& UserID);
 
+    User* gerCurrentUser();
 
+    int getCurrentPrivilege();
+
+    void set_selected_book(std::string& book);
+
+    std::string get_selected_book();
 };
-
-
 
 #endif //BOOKSTORE_2025_USER_DATABASE_H

@@ -1,27 +1,19 @@
 #ifndef BOOKSTORE_2025_USER_H
 #define BOOKSTORE_2025_USER_H
 #include <iostream>
-const int BLOCK_MAX_USER = 100;
 struct User {
-    int size{};
-    char UserID[BLOCK_MAX_USER][31]{};
-    char Password[BLOCK_MAX_USER][31]{};
-    int Privilege[BLOCK_MAX_USER]{};
-    char Username[BLOCK_MAX_USER][31]{};
-    long pre_block = -1;
-    long next_block = -1;
+    char UserID[31]{};
+    char Password[31]{};
+    int Privilege{};
+    char Username[31]{};
 
     User();
 
-    bool too_big();
+    User(const std::string& UserID, const std::string& Password, int Privilege, const std::string& Username);
 
-    bool too_small();
+    void read(std::fstream &file);
 
-    int find_index(const std::string& UserID);
-
-    void insert(int index, const std::string& UserID, const std::string& Password, int Privilege, const std::string& Username);
-
-    void erase(int index);
+    void write(std::fstream &file);
 
 };
 

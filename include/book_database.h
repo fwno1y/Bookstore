@@ -3,40 +3,103 @@
 #include <iostream>
 #include "book.h"
 #include <fstream>
+#include <cstring>
+#include <iostream>
+#include <vector>
+#include <map>
+#include <unordered_map>
+const int BLOCKSIZE = 100;
 class BookDatabase {
 private:
-    std::fstream file;
+    std::fstream book_file;
     std::string file_name;
-    long head_block = -1;
-    long tail_block = -1;
-    long free_head_block = -1;
+    // std::string index_file_name;
+    std::string selected_ISBN;
+    std::unordered_map<std::string, int> ISBN_map{};
+    std::unordered_map<std::string, std::vector<int>> name_map{};
+    std::unordered_map<std::string, std::vector<int>> author_map{};
+    std::unordered_map<std::string, std::vector<int>> keyword_map{};
 
-    void read_block(long pos, Book& Book);
+    struct BookBlock {
+        Book books[BLOCKSIZE];
+        int size;
+        int next_block;
 
-    void write_block(long pos,Book& Book);
+        BookBlock();
 
-    long allocate_block();
+        void read(std::fstream& file);
 
-    void free_block(long pos);
+        void write(std::fstream& file);
+    };
 
-    void split_block(long pos, Book& Book);
+    // struct IndexBlock {
+    //     char key[61];
+    //     char ISBN[21];
+    //     int pos;//整块位置
+    //     int index;//块内位置
+    //
+    //     IndexBlock();
+    //
+    //     IndexBlock(const std::string& key, const std::string& ISBN, int pos = -1, int index = -1);
+    //
+    //     void read(std::fstream& file);
+    //
+    //     void write(std::fstream& file);
+    //
+    //     bool operator < (const IndexBlock& other) const {
+    //         if (strcmp(key,other.key) == 0) {
+    //             return strcmp(ISBN,other.ISBN) < 0;
+    //         }
+    //         return strcmp(key,other.key);
+    //     }
+    // };
 
-    void try_merge_blocks(long pos1, long pos2);
+    static void read_block(std::fstream& file, BookBlock& block, int pos);
 
-    long find_block(std::string ISBN);
+    static void write_block(std::fstream& file, BookBlock& block, int pos);
 
+    bool insertBook(const Book& book);
+
+    bool eraseBook(const std::string& ISBN);
+
+    Book* findBookByISBN(const std::string& ISBN);
+
+    bool updateBook(const Book& book);
+
+    std::vector<Book> findAllBooks();
+
+    std::vector<Book> findBooksByBookname(const std::string& bookname);
+
+    std::vector<Book> findBooksByAuthor(const std::string& author);
+
+    std::vector<Book> findBooksByKeyword(const std::string& keyword);
+
+    void addIndex(const Book& book, int block_pos);
+
+    void eraseIndex(const Book& book, int block_pos);
+
+    void updateIndex(const Book& book, int block_pos, bool type );
+
+    void rebuildIndex();
 
 public:
-    BookDatabase();
+    explicit BookDatabase(const std::string& book_file);
 
     ~BookDatabase();
 
-    void initialize() {
+    void initialize();
 
-    }
-
+    //加入图书
+    bool Add(const Book& book);
+    //删除图书
+    bool Delete(const std::string& ISBN);
     //检索图书
-    void Show(int type, const std::string& info);
+    std::vector<Book> showAllBooks();
+
+    Book *showBooksByISBN(const std::string &ISBN);
+    std::vector<Book> showBooksByName(const std::string& name);
+    std::vector<Book> showBooksByAuthor(const std::string& author);
+    std::vector<Book> showBooksByKeyword(const std::string& keyword);
     //购买图书
     double Buy(const std::string& ISBN, int Quantity);
     //选择图书
@@ -45,6 +108,25 @@ public:
     void Modify(int type, const std::string& info);
     //图书进货
     bool Import(int Quantity, long long TotalCost);
+    //判断是否合法
+    bool isValidISBN(const std::string& ISBN);
+
+    bool isValidBookName(const std::string& name);
+
+    bool isValidAuthor(const std::string& author);
+
+    bool isValidKeyword(const std::string& keyword);
+
+    bool isValidQuantity(int quantity);
+
+    bool isValidPrice(double price);
+
+    // 获取选中图书
+    std::string getSelectedISBN();
+
+    // 检查图书是否存在
+    bool bookExists(const std::string& ISBN);
+
 };
 
 

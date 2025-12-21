@@ -4,7 +4,8 @@
 #include "user.h"
 #include <fstream>
 #include <vector>
-const int BLOCKSIZE = 100;
+#include "book_database.h"
+
 //当前用户状态
 struct CurrentUser {
     User user;

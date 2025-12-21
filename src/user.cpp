@@ -118,6 +118,15 @@ bool UserDatabase::insert(const User& user) {
                 if (insert_pos >= mid) {
                     pos = cur_block.next_block;
                 }
+                else {
+                    for (int i = cur_block.size; i > insert_pos; ++i) {
+                        cur_block.users[i] = cur_block.users[i - 1];
+                    }
+                    cur_block.users[insert_pos] = user;
+                    cur_block.size++;
+                    write_block(user_file,cur_block,pos);
+                    flag = true;
+                }
             }
             else {
                 pos = cur_block.next_block;
@@ -151,7 +160,7 @@ bool UserDatabase::erase(const std::string &UserID) {
                 read_block(user_file,next_block,cur_block.next_block);
                 if (cur_block.size + next_block.size < BLOCKSIZE) {
                     for (int i = 0; i < next_block.size; ++i) {
-                        cur_block.users[i + cur_block.size] = next_block.users[i];
+                        cur_block.users[cur_block.size++] = next_block.users[i];
                     }
                     cur_block.next_block = next_block.next_block;
                     write_block(user_file, cur_block,pos);
@@ -159,6 +168,9 @@ bool UserDatabase::erase(const std::string &UserID) {
                     return true;
                 }
             }
+            write_block(user_file,cur_block,pos);
+            user_file.close();
+            return true;
         }
         pos = cur_block.next_block;
     }
@@ -177,7 +189,7 @@ User *UserDatabase::find(const std::string &UserID) {
         read_block(user_file,cur_block,pos);
         int l = 0,r = cur_block.size - 1;
         while (l <= r) {
-            int mid = (l + r) / 2;
+            int mid = l + (r - l) / 2;
             int cmp = std::strcmp(cur_block.users[mid].UserID,UserID.c_str());
             if (cmp > 0) {
                 r = mid - 1;
@@ -224,13 +236,7 @@ UserDatabase::UserDatabase(const std::string &user_file) {
     if (!user_file.empty()) {
         file_name = user_file;
     }
-    this->user_file.open(file_name,std::ios::out | std::ios::binary);
-    if (!this->user_file) {
-        initialize();
-    }
-    else {
-        this->user_file.close();
-    }
+    initialize();
 }
 
 UserDatabase::~UserDatabase() {

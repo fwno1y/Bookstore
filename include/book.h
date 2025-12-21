@@ -1,30 +1,44 @@
 #ifndef BOOKSTORE_2025_BOOK_H
 #define BOOKSTORE_2025_BOOK_H
+#include <cstring>
 #include <iostream>
-const int BLOCK_MAX_BOOK = 100;
-
+#include <fstream>
+#include <vector>
 struct Book {
-    int size;
-    char ISBN[BLOCK_MAX_BOOK][21]{};
-    char BookName[BLOCK_MAX_BOOK][61]{};
-    char Author[BLOCK_MAX_BOOK][61]{};
-    char Keyword[BLOCK_MAX_BOOK][61]{};
-    int Quantity[BLOCK_MAX_BOOK]{};
-    double Price[BLOCK_MAX_BOOK]{};
-    long pre_block = -1;
-    long next_block = -1;
+    char ISBN[21]{};
+    char BookName[61]{};
+    char Author[61]{};
+    char Keyword[61]{};
+    int Quantity{};
+    double Price{};
 
     Book();
 
-    bool too_big();
+    explicit Book(const std::string& ISBN);
 
-    bool too_small();
+    ~Book();
 
-    int find_index(const std::string& ISBN);
+    Book(const std::string& ISBN, const std::string& Bookname, const std::string& Author, const std::string& Keyword, int Quantity, double price);
 
-    void insert(int index, const std::string& ISBN, const std::string& BookName, const std::string& Author, const std::string& Keyword, int Quantity, int price);
+    void read(std::fstream& file);
 
-    void erase(int index);
+    void write(std::fstream& file);
+
+    std::vector<std::string> getKeywords() const;
+
+    bool includeKeyword(const std::string& keyword);
+
+    std::string print();
+
+    bool operator < (const Book& other) const {
+        return strcmp(ISBN,other.ISBN) < 0;
+    }
+
+    bool operator == (const Book& other) const {
+        return strcmp(ISBN,other.ISBN) == 0;
+    }
+
+
 };
 
 

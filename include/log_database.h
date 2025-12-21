@@ -2,29 +2,63 @@
 #define BOOKSTORE_2025_LOG_DATABASE_H
 #include <iostream>
 #include <fstream>
-#include <utility>
+
+struct Log {
+    char operator_ID[61]{};
+    char operation[20]{};
+    int Privilege{};
+
+    Log();
+
+    Log(const std::string& operator_ID,const std::string& operation,int Privilege);
+};
+
 class LogDatabase {
 private:
     std::fstream log_data;
     std::string file_name;
+
 public:
-    LogDatabase();
+    LogDatabase() = default;
+
     ~LogDatabase();
+
+    void initialize();
+
+    void addLog(const std::string& operator_ID, const std::string& operation, int Privilege);
+
+    void generateEmployeeReport();
+
+    void generateLogReport();
+
 };
+struct Deal {
+    double income{};
+    double expense{};
+
+    Deal();
+
+    Deal(double income,double expense);
+};
+
 
 class DealDatabase {
 private:
     std::fstream deal_data;
     std::string file_name;
+
 public:
     DealDatabase() = default;
 
-    explicit DealDatabase(std::string  file_name) : file_name(std::move(file_name)) {}
+    explicit DealDatabase(const std::string& filename);
 
     ~DealDatabase();
 
-    void initialize();
+    void addDeal(double income, double expense);
 
+    void showDeal(int count = -1);
+
+    void generateDealReport();
 
 };
 

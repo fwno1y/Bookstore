@@ -245,11 +245,12 @@ UserDatabase::~UserDatabase() {
 }
 
 void UserDatabase::initialize() {
+    user_file.open(file_name,std::ios::in | std::ios::out | std::ios::binary);
     if (!user_file) {
+        user_file.open(file_name,std::ios::out);
+        user_file.close();
         user_file.open(file_name,std::ios::in | std::ios::out | std::ios::binary);
-        return;
     }
-    user_file.open(file_name,std::ios::out);
     //写入第一个块
     BlockNode headblock;
     headblock.size = 1;
@@ -403,7 +404,7 @@ bool UserDatabase::Delete(const std::string &UserID) {
     return erase(UserID);
 }
 
-User * UserDatabase::gerCurrentUser() {
+User * UserDatabase::getCurrentUser() {
     if (Login_stack.empty()) {
         return nullptr;
     }

@@ -62,7 +62,7 @@ public:
     //删除账户
     bool Delete(const std::string& UserID);
 
-    User* gerCurrentUser();
+    User* getCurrentUser();
 
     int getCurrentPrivilege();
 

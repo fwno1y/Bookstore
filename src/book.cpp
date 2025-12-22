@@ -77,7 +77,7 @@ bool Book::includeKeyword(const std::string &keyword) {
     return false;
 }
 
-std::string Book::print() const {
+void Book::print() const {
     std::cout << ISBN << "\t" << BookName << "\t" << Author << "\t" << Keyword << "\t" << std::fixed << std::setprecision(2) << Price<< "\t" << Quantity;
 }
 
@@ -142,7 +142,7 @@ bool BookDatabase::insertBook(const Book &book) {
             insert_pos++;
         }
         if (cur_block.size < BLOCKSIZE) {
-            for (int i = cur_block.size; i > insert_pos; ++i) {
+            for (int i = cur_block.size; i > insert_pos; --i) {
                 cur_block.books[i] = cur_block.books[i - 1];
             }
             cur_block.books[insert_pos] = book;
@@ -361,6 +361,7 @@ std::vector<Book> BookDatabase::findBooksByAuthor(const std::string &author) {
     std::vector<Book> res;
     auto it = author_map.find(author);
     if (it != author_map.end()) {
+        book_file.open(file_name,std::ios::in | std::ios::binary);
         for (int pos : author_map[author]) {
             BookBlock block;
             read_block(book_file,block,pos);
@@ -377,6 +378,7 @@ std::vector<Book> BookDatabase::findBooksByKeyword(const std::string &keyword) {
     std::vector<Book> res;
     auto it = keyword_map.find(keyword);
     if (it != keyword_map.end()) {
+        book_file.open(file_name,std::ios::in | std::ios::binary);
         for (int pos : keyword_map[keyword]) {
             BookBlock block;
             read_block(book_file,block,pos);

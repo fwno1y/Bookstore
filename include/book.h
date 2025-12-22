@@ -28,7 +28,7 @@ struct Book {
 
     bool includeKeyword(const std::string& keyword);
 
-    std::string print() const;
+    void print() const;
 
     bool operator < (const Book& other) const {
         return strcmp(ISBN,other.ISBN) < 0;

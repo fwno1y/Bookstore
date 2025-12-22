@@ -44,7 +44,7 @@ bool checkPrivilege(int required) {
 
 // 记录日志
 void logOperation(const std::string& operation) {
-    User* currentUser = MyUserDatabase.gerCurrentUser();
+    User* currentUser = MyUserDatabase.getCurrentUser();
     std::string operatorID = currentUser ? std::string(currentUser->UserID) : "guest";
     int privilege = MyUserDatabase.getCurrentPrivilege();
     MyLogDatabase.addLog(operatorID, operation, privilege);
@@ -301,7 +301,8 @@ int main() {
 
                     // 输出图书信息
                     for (const auto& book : books) {
-                        std::cout << book.print() << "\n";
+                        book.print();
+                        std::cout << "\n";
                     }
 
                     logOperation("show books");

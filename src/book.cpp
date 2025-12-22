@@ -77,15 +77,8 @@ bool Book::includeKeyword(const std::string &keyword) {
     return false;
 }
 
-std::string Book::print() {
-    std::stringstream ss;
-    ss << ISBN << "\t"
-       << BookName << "\t"
-       << Author << "\t"
-       << Keyword << "\t"
-       << std::fixed << std::setprecision(2) << Price
-       << "\t" << Quantity;
-    return ss.str();
+std::string Book::print() const {
+    std::cout << ISBN << "\t" << BookName << "\t" << Author << "\t" << Keyword << "\t" << std::fixed << std::setprecision(2) << Price<< "\t" << Quantity;
 }
 
 BookDatabase::BookBlock::BookBlock() : size(0),next_block(-1) {

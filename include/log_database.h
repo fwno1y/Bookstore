@@ -21,9 +21,9 @@ private:
 public:
     LogDatabase() = default;
 
-    ~LogDatabase();
+    explicit LogDatabase(const std::string& filename);
 
-    void initialize();
+    ~LogDatabase();
 
     void addLog(const std::string& operator_ID, const std::string& operation, int Privilege);
 

@@ -13,15 +13,19 @@ Log::Log(const std::string &operator_ID, const std::string &operation, int Privi
     this->Privilege = Privilege;
 }
 
-LogDatabase::~LogDatabase() {
-    if (log_data.is_open()) {
+LogDatabase::LogDatabase(const std::string &filename) {
+    this->file_name = filename;
+    log_data.open(file_name, std::ios::in|std::ios::out);
+    if (!log_data.is_open()) {
+        log_data.open(file_name, std::ios::out);
         log_data.close();
+        log_data.open(file_name, std::ios::in | std::ios::out);
     }
 }
 
-void LogDatabase::initialize() {
-    if (file_name.empty()) {
-        file_name = "log.txt";
+LogDatabase::~LogDatabase() {
+    if (log_data.is_open()) {
+        log_data.close();
     }
 }
 

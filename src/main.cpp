@@ -53,14 +53,14 @@ void logOperation(const std::string& operation) {
 //解析show和modify的参数
 bool parse(const std::vector<std::string>& tokens,
                std::vector<std::pair<std::string, std::string>>& info) {
-    for (size_t i = 1; i < tokens.size(); ++i) {
+    for (int i = 1; i < tokens.size(); ++i) {
         std::string token = tokens[i];
 
         if (token.empty() || token[0] != '-') {
             return false;
         }
 
-        size_t pos = token.find('=');
+        int pos = token.find('=');
         if (pos == std::string::npos) {
             return false;
         }
@@ -387,7 +387,7 @@ int main() {
                 // 检查是否选中图书
                 std::string selectedISBN = MyBookDatabase.getSelectedISBN();
                 if (selectedISBN.empty()) {
-                    std::cout << "Invalid\n";
+                    std::cout << "Invalid \n";
                     continue;
                 }
 

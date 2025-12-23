@@ -6,6 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include <cstring>
+int user_block_size = sizeof(User) * BLOCKSIZE + sizeof(int) * 2;
 
 User::User() = default;
 
@@ -54,8 +55,7 @@ void UserDatabase::BlockNode::write(std::fstream& file) {
 }
 
 void UserDatabase::read_block(std::fstream& file, BlockNode &node, int pos) {
-    node = BlockNode();
-    file.seekg(pos);
+    file.seekg(pos * user_block_size);
     file.read(reinterpret_cast<char *> (&node.size),sizeof(int));
     file.read(reinterpret_cast<char *> (&node.next_block),sizeof(int));
     for (int i = 0; i < node.size; ++i) {
@@ -64,8 +64,7 @@ void UserDatabase::read_block(std::fstream& file, BlockNode &node, int pos) {
 }
 
 void UserDatabase::write_block(std::fstream& file, BlockNode &node, int pos) {
-    node = BlockNode();
-    file.seekp(pos);
+    file.seekp(pos * user_block_size);
     file.write(reinterpret_cast<char *> (&node.size),sizeof(int));
     file.write(reinterpret_cast<char *> (&node.next_block),sizeof(int));
     for (int i = 0; i < node.size; ++i) {
@@ -75,7 +74,6 @@ void UserDatabase::write_block(std::fstream& file, BlockNode &node, int pos) {
 }
 
 bool UserDatabase::insert(const User& user) {
-    user_file.open(file_name,std::ios::in | std::ios::out | std::ios::binary);
     User* exist = find(user.UserID);
     if (exist != nullptr) {
         delete exist;
@@ -83,6 +81,7 @@ bool UserDatabase::insert(const User& user) {
         return false;
     }
     delete exist;
+    user_file.open(file_name,std::ios::in | std::ios::out);
     BlockNode cur_block;
     int pos = 0;
     bool flag = false;
@@ -93,7 +92,7 @@ bool UserDatabase::insert(const User& user) {
             insert_pos++;
         }
         if (cur_block.size < BLOCKSIZE) {
-            for (int i = cur_block.size; i > insert_pos; ++i) {
+            for (int i = cur_block.size; i > insert_pos; --i) {
                 cur_block.users[i] = cur_block.users[i - 1];
             }
             cur_block.users[insert_pos] = user;
@@ -112,14 +111,14 @@ bool UserDatabase::insert(const User& user) {
                 }
                 cur_block.size = mid;
                 new_block.next_block = cur_block.next_block;
-                cur_block.next_block = user_file.tellp();
+                cur_block.next_block = user_file.tellp() / user_block_size;
                 write_block(user_file,cur_block,pos);
                 write_block(user_file,new_block,cur_block.next_block);
                 if (insert_pos >= mid) {
                     pos = cur_block.next_block;
                 }
                 else {
-                    for (int i = cur_block.size; i > insert_pos; ++i) {
+                    for (int i = cur_block.size; i > insert_pos; --i) {
                         cur_block.users[i] = cur_block.users[i - 1];
                     }
                     cur_block.users[insert_pos] = user;
@@ -138,7 +137,7 @@ bool UserDatabase::insert(const User& user) {
 }
 
 bool UserDatabase::erase(const std::string &UserID) {
-    user_file.open(file_name,std::ios::in | std::ios::out | std::ios::binary);
+    user_file.open(file_name,std::ios::in | std::ios::out);
     BlockNode cur_block,next_block;
     int pos = 0;
     while (pos != -1) {
@@ -179,8 +178,9 @@ bool UserDatabase::erase(const std::string &UserID) {
 }
 
 User *UserDatabase::find(const std::string &UserID) {
-    user_file.open(file_name,std::ios::in | std::ios::binary);
+    user_file.open(file_name,std::ios::in | std::ios::out);
     if (!user_file) {
+        user_file.close();
         return nullptr;
     }
     BlockNode cur_block;
@@ -206,13 +206,12 @@ User *UserDatabase::find(const std::string &UserID) {
         }
         pos = cur_block.next_block;
     }
-
     user_file.close();
     return nullptr;
 }
 
 bool UserDatabase::update(const User &user) {
-    user_file.open(file_name,std::ios::in | std::ios::out | std::ios::binary);
+    user_file.open(file_name,std::ios::in | std::ios::out);
     BlockNode cur_block;
     int pos = 0;
     while (pos != -1) {
@@ -245,11 +244,11 @@ UserDatabase::~UserDatabase() {
 }
 
 void UserDatabase::initialize() {
-    user_file.open(file_name,std::ios::in | std::ios::out | std::ios::binary);
+    user_file.open(file_name,std::ios::in | std::ios::out);
     if (!user_file) {
         user_file.open(file_name,std::ios::out);
         user_file.close();
-        user_file.open(file_name,std::ios::in | std::ios::out | std::ios::binary);
+        user_file.open(file_name,std::ios::in | std::ios::out);
     }
     //写入第一个块
     BlockNode headblock;
@@ -258,9 +257,20 @@ void UserDatabase::initialize() {
     //创建店主root账户
     User root = User("root","sjtu",7,"shopkeeper");
     headblock.users[0] = root;
-    CurrentUser shopkeeper = CurrentUser (root,"");
-    Login_stack.push_back(shopkeeper);
     write_block(user_file,headblock,0);
+
+    // else {
+    //     user_file.seekg(0, std::ios::end);
+    //     if (user_file.tellg() == 0) {
+    //         // 文件为空，初始化
+    //         BlockNode headblock;
+    //         headblock.size = 1;
+    //         headblock.next_block = -1;
+    //         User root = User("root", "sjtu", 7, "shopkeeper");
+    //         headblock.users[0] = root;
+    //         write_block(user_file, headblock, 0);
+    //     }
+    // }
     user_file.close();
 }
 
@@ -278,13 +288,13 @@ bool UserDatabase::Login(const std::string &UserID, const std::string &Password)
         return true;
     }
     //判断已经登录但是被覆盖
-    for (int i = 0; i < Login_stack.size(); ++i) {
-        if (strcmp(Login_stack[i].user.UserID, UserID.c_str()) == 0) {
-            Login_stack.push_back(cur_user);
-            delete user;
-            return true;
-        }
-    }
+    // for (int i = 0; i < Login_stack.size(); ++i) {
+    //     if (strcmp(Login_stack[i].user.UserID, UserID.c_str()) == 0) {
+    //         Login_stack.push_back(cur_user);
+    //         delete user;
+    //         return true;
+    //     }
+    // }
     delete user;
     return false;
 }
@@ -347,9 +357,6 @@ bool UserDatabase::ChangePassword(const std::string &UserID, const std::string &
 
 bool UserDatabase::UserAdd(const std::string &UserID, const std::string &Password, int Privilege, const std::string &Username) {
     int cur_Privilege = getCurrentPrivilege();
-    if (cur_Privilege < 3) {
-        return false;
-    }
     if (cur_Privilege <= Privilege) {
         return false;
     }
@@ -367,7 +374,7 @@ bool UserDatabase::UserAdd(const std::string &UserID, const std::string &Passwor
         }
     }
     for (char c : Username) {
-        if (c < 32 || c > 126) {
+        if (c <= 32 || c > 126) {
             return false;
         }
     }

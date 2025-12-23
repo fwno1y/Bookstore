@@ -32,9 +32,9 @@ private:
         void write(std::fstream& file);
     };
 
-    void read_block(std::fstream& file, BlockNode& node, int pos);
+    static void read_block(std::fstream& file, BlockNode& node, int pos);
 
-    void write_block(std::fstream& file, BlockNode& node, int pos);
+    static void write_block(std::fstream& file, BlockNode& node, int pos);
 
     bool insert(const User& user);
 

@@ -13,7 +13,6 @@ class BookDatabase {
 private:
     std::fstream book_file;
     std::string file_name;
-    // std::string index_file_name;
     std::string selected_ISBN;
     std::unordered_map<std::string, int> ISBN_map{};
     std::unordered_map<std::string, std::vector<int>> name_map{};
@@ -31,28 +30,6 @@ private:
 
         void write(std::fstream& file);
     };
-
-    // struct IndexBlock {
-    //     char key[61];
-    //     char ISBN[21];
-    //     int pos;//整块位置
-    //     int index;//块内位置
-    //
-    //     IndexBlock();
-    //
-    //     IndexBlock(const std::string& key, const std::string& ISBN, int pos = -1, int index = -1);
-    //
-    //     void read(std::fstream& file);
-    //
-    //     void write(std::fstream& file);
-    //
-    //     bool operator < (const IndexBlock& other) const {
-    //         if (strcmp(key,other.key) == 0) {
-    //             return strcmp(ISBN,other.ISBN) < 0;
-    //         }
-    //         return strcmp(key,other.key);
-    //     }
-    // };
 
     static void read_block(std::fstream& file, BookBlock& block, int pos);
 

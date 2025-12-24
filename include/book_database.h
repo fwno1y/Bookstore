@@ -55,8 +55,6 @@ private:
 
     void eraseIndex(const Book& book, int block_pos);
 
-    void updateIndex(const Book& book, int block_pos, bool type );
-
     void rebuildIndex();
 
 public:

@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <sstream>
 #include <vector>
+#include <set>
 
 int book_block_size = sizeof(Book) * BLOCKSIZE + sizeof(int) * 2;
 
@@ -84,7 +85,16 @@ bool Book::includeKeyword(const std::string &keyword) {
 }
 
 void Book::print() const {
-    std::cout << ISBN << "\t" << BookName << "\t" << Author << "\t" << Keyword << "\t" << std::fixed << std::setprecision(2) << Price<< "\t" << Quantity;
+    if (strlen(ISBN) == 0) {
+        return;
+    }
+    std::cout << ISBN << "\t" << BookName << "\t" << Author << "\t";
+    std::vector<std::string> keywords = getKeywords();
+    for (int i = 0; i < keywords.size() - 1; ++i) {
+        std::cout << keywords[i] << '|';
+    }
+    std::cout << keywords.back();
+    std::cout << "\t" << std::fixed << std::setprecision(2) << Price<< "\t" << Quantity;
 }
 
 BookDatabase::BookBlock::BookBlock() : size(0),next_block(-1) {
@@ -335,6 +345,9 @@ std::vector<Book> BookDatabase::findAllBooks() {
     while (pos != -1) {
         read_block(book_file,cur_block,pos);
         for (int i = 0; i < cur_block.size; ++i) {
+            if (strlen(cur_block.books[i].ISBN) == 0) {
+                continue;
+            }
             all.push_back(cur_block.books[i]);
         }
         pos = cur_block.next_block;
@@ -348,14 +361,17 @@ std::vector<Book> BookDatabase::findBooksByBookname(const std::string &bookname)
     std::vector<Book> res;
     auto it = name_map.find(bookname);
     if (it != name_map.end()) {
-        book_file.open(file_name,std::ios::in | std::ios::binary);
+        book_file.open(file_name,std::ios::in);
         for (int pos : name_map[bookname]) {
             BookBlock block;
             read_block(book_file,block,pos);
             for (int i = 0; i < block.size; ++i) {
-                res.push_back(block.books[i]);
+                if (strcmp(block.books[i].BookName, bookname.c_str()) == 0 && strlen(block.books[i].ISBN) > 0) {
+                    res.push_back(block.books[i]);
+                }
             }
         }
+        book_file.close();
     }
     std::sort(res.begin(), res.end());
     return res;
@@ -365,14 +381,17 @@ std::vector<Book> BookDatabase::findBooksByAuthor(const std::string &author) {
     std::vector<Book> res;
     auto it = author_map.find(author);
     if (it != author_map.end()) {
-        book_file.open(file_name,std::ios::in | std::ios::binary);
+        book_file.open(file_name,std::ios::in);
         for (int pos : author_map[author]) {
             BookBlock block;
             read_block(book_file,block,pos);
             for (int i = 0; i < block.size; ++i) {
-                res.push_back(block.books[i]);
+                if (strcmp(block.books[i].Author, author.c_str() ) == 0 && strlen(block.books[i].ISBN) > 0) {
+                    res.push_back(block.books[i]);
+                }
             }
         }
+        book_file.close();
     }
     std::sort(res.begin(), res.end());
     return res;
@@ -382,14 +401,17 @@ std::vector<Book> BookDatabase::findBooksByKeyword(const std::string &keyword) {
     std::vector<Book> res;
     auto it = keyword_map.find(keyword);
     if (it != keyword_map.end()) {
-        book_file.open(file_name,std::ios::in | std::ios::binary);
+        book_file.open(file_name,std::ios::in);
         for (int pos : keyword_map[keyword]) {
             BookBlock block;
             read_block(book_file,block,pos);
             for (int i = 0; i < block.size; ++i) {
-                res.push_back(block.books[i]);
+                if (block.books[i].includeKeyword(keyword) && strlen(block.books[i].ISBN) > 0) {
+                    res.push_back(block.books[i]);
+                }
             }
         }
+        book_file.close();
     }
     std::sort(res.begin(), res.end());
     return res;
@@ -444,15 +466,6 @@ void BookDatabase::eraseIndex(const Book &book, int block_pos) {
                 }
             }
         }
-    }
-}
-
-void BookDatabase::updateIndex(const Book &book, int block_pos, bool type) {
-    if (type) {
-        eraseIndex(book, block_pos);
-    }
-    else {
-        addIndex(book, block_pos);
     }
 }
 
@@ -580,7 +593,7 @@ double BookDatabase::Buy(const std::string &ISBN, int Quantity) {
 }
 
 void BookDatabase::Select(const std::string &ISBN) {
-    if (!isValidISBN(ISBN)) {
+    if (!isValidISBN(ISBN) || ISBN.empty()) {
         return;
     }
     if (!bookExists(ISBN)) {
@@ -696,8 +709,6 @@ void BookDatabase::Modify(int type, const std::string &info) {
             delete book;
             return;
     }
-    eraseIndex(old_book, block_pos);
-    addIndex(*book, block_pos);
     updateBook(*book);
     delete book;
 }
@@ -764,7 +775,25 @@ bool BookDatabase::isValidKeyword(const std::string &keyword) {
             return false;
         }
     }
-    if (keyword.find('|') != std::string::npos) {
+
+    // 检查关键词段是否重复
+    std::vector<std::string> keywords;
+    std::string cur;
+    for (int i = 0; i < 60 && keyword[i] != '\0'; ++i) {
+        if (keyword[i] != '|') {
+            cur += keyword[i];
+        }
+        else {
+            keywords.push_back(cur);
+            cur.clear();
+        }
+    }
+    if (cur.empty()) {
+        return false;
+    }
+    keywords.push_back(cur);
+    std::set <std::string> tmp(keywords.begin(),keywords.end());
+    if (tmp.size() < keywords.size()) {
         return false;
     }
     return true;

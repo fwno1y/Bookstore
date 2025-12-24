@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
+#include <set>
 #include <vector>
 #include "book_database.h"
 #include "log_database.h"
@@ -289,6 +290,10 @@ int main() {
                         } else if (it.first == "-author") {
                             books = MyBookDatabase.showBooksByAuthor(it.second);
                         } else if (it.first == "-keyword") {
+                            if (it.second.find('|') != std::string::npos) {
+                                std::cout << "Invalid\n";
+                                continue;
+                            }
                             books = MyBookDatabase.showBooksByKeyword(it.second);
                         } else {
                             std::cout << "Invalid\n";
@@ -300,11 +305,15 @@ int main() {
                     }
 
                     // 输出图书信息
-                    for (const auto& book : books) {
-                        book.print();
-                        std::cout << "\n";
+                    if (books.empty()) {
+                        std::cout << '\n';
                     }
-
+                    else {
+                        for (const auto& book : books) {
+                            book.print();
+                            std::cout << "\n";
+                        }
+                    }
                     logOperation("show books");
                 }
             }
@@ -353,6 +362,7 @@ int main() {
                 MyBookDatabase.Select(ISBN);
                 std::string selectedISBN = MyBookDatabase.getSelectedISBN();
                 MyUserDatabase.set_selected_book(selectedISBN);
+                // std::cout << selectedISBN << std::endl;
                 logOperation("select " + ISBN);
             }
 
@@ -378,8 +388,8 @@ int main() {
                 for (const auto& it : info) {
                     parameters.push_back(it.first);
                 }
-                std::sort(parameters.begin(), parameters.end());
-                if (std::adjacent_find(parameters.begin(), parameters.end()) != parameters.end()) {
+                std::set<std::string> tmp(parameters.begin(), parameters.end());
+                if (tmp.size() < parameters.size()) {
                     std::cout << "Invalid\n";
                     continue;
                 }

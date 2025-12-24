@@ -38,7 +38,6 @@ struct Book {
         return strcmp(ISBN,other.ISBN) == 0;
     }
 
-
 };
 
 

@@ -427,7 +427,7 @@ int UserDatabase::getCurrentPrivilege() {
     return Login_stack.back().user.Privilege;
 }
 
-void UserDatabase::set_selected_book(std::string& ISBN) {
+void UserDatabase::set_selected_book(const std::string& ISBN) {
     if (Login_stack.empty()) {
         return;
     }

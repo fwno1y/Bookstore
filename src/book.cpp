@@ -608,20 +608,20 @@ void BookDatabase::Select(const std::string &ISBN) {
     selected_ISBN = ISBN;
 }
 
-void BookDatabase::Modify(int type, const std::string &info) {
+bool BookDatabase::Modify(int type, const std::string &info) {
     if (selected_ISBN.empty()) {
-        return;
+        return false;
     }
     Book* book = findBookByISBN(selected_ISBN);
     if (book == nullptr) {
         delete book;
-        return;
+        return false;
     }
     Book old_book = *book;
     auto it = ISBN_map.find(selected_ISBN);
     if (it == ISBN_map.end()) {
         delete book;
-        return;
+        return false;
     }
     int block_pos = it->second;
     switch (type) {
@@ -629,17 +629,17 @@ void BookDatabase::Modify(int type, const std::string &info) {
         {
             if (!isValidISBN(info)) {
                 delete book;
-                return;
+                return false;
             }
             // 检查新ISBN是否与旧ISBN相同
             if (info == old_book.ISBN) {
                 delete book;
-                return;
+                return false;
             }
             // 检查新ISBN是否已存在
             if (bookExists(info)) {
                 delete book;
-                return;
+                return false;
             }
             std::string old_ISBN = selected_ISBN;
             strncpy(book->ISBN, info.c_str(), 20);
@@ -666,12 +666,12 @@ void BookDatabase::Modify(int type, const std::string &info) {
             insertBook(*book);
             selected_ISBN = info;
             delete book;
-            return;
+            return true;
         }
         case 2: // 修改书名
             if (!isValidBookName(info)) {
                 delete book;
-                return;
+                return false;
             }
             strncpy(book->BookName, info.c_str(), 60);
             book->BookName[60] = '\0';
@@ -679,7 +679,7 @@ void BookDatabase::Modify(int type, const std::string &info) {
         case 3: // 修改作者
             if (!isValidAuthor(info)) {
                 delete book;
-                return;
+                return false;
             }
             strncpy(book->Author, info.c_str(), 60);
             book->Author[60] = '\0';
@@ -687,33 +687,26 @@ void BookDatabase::Modify(int type, const std::string &info) {
         case 4: // 修改关键词
             if (!isValidKeyword(info)) {
                 delete book;
-                return;
+                return false;
             }
             strncpy(book->Keyword, info.c_str(), 60);
             book->Keyword[60] = '\0';
             break;
         case 5: // 修改价格
-            try {
-                double price = std::stod(info);
-                if (!isValidPrice(price)) {
-                    delete book;
-                    return;
-                }
-                book->Price = price;
-            } catch (...) {
+            double price = std::stod(info);
+            if (!isValidPrice(price)) {
                 delete book;
-                return;
+                return false;
             }
+            book->Price = price;
             break;
-        default:
-            delete book;
-            return;
     }
     updateBook(*book);
     delete book;
+    return true;
 }
 
-bool BookDatabase::Import(int Quantity, long long TotalCost) {
+bool BookDatabase::Import(int Quantity, double TotalCost) {
     if (!isValidQuantity(Quantity) || TotalCost <= 0) {
         return false;
     }

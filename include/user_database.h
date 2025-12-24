@@ -66,9 +66,10 @@ public:
 
     int getCurrentPrivilege();
 
-    void set_selected_book(std::string& book);
+    void set_selected_book(const std::string& book);
 
     std::string get_selected_book();
+
 };
 
 #endif //BOOKSTORE_2025_USER_DATABASE_H

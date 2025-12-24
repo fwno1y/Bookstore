@@ -414,7 +414,12 @@ int main() {
                         continue;
                     }
 
-                    MyBookDatabase.Modify(type, it.second);
+                    if (!MyBookDatabase.Modify(type, it.second)) {
+                        std::cout << "Invalid\n";
+                    }
+                    else if (type == 1) {
+                        MyUserDatabase.set_selected_book(it.second);
+                    }
                 }
 
                 logOperation("modify book");
@@ -432,7 +437,7 @@ int main() {
                 }
 
                 int quantity = std::stoi(tokens[1]);
-                long long totalCost = std::stoll(tokens[2]);
+                double totalCost = std::stod(tokens[2]);
 
                 if (quantity <= 0 || totalCost <= 0) {
                     std::cout << "Invalid\n";
@@ -483,5 +488,9 @@ int main() {
             std::cout << "Invalid\n";
         }
     }
+    // std::ofstream("book.txt", std::ios::trunc).close();
+    // std::ofstream("user.txt", std::ios::trunc).close();
+    std::ofstream("log.txt", std::ios::trunc).close();
+    std::ofstream("deal.txt", std::ios::trunc).close();
     return 0;
 }

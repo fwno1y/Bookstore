@@ -80,9 +80,9 @@ public:
     //选择图书
     void Select(const std::string& ISBN);
     //修改图书信息
-    void Modify(int type, const std::string& info);
+    bool Modify(int type, const std::string& info);
     //图书进货
-    bool Import(int Quantity, long long TotalCost);
+    bool Import(int Quantity, double TotalCost);
     //判断是否合法
     bool isValidISBN(const std::string& ISBN);
 

@@ -5,7 +5,6 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
-#include <sstream>
 #include <vector>
 #include <set>
 
@@ -13,8 +12,8 @@ int book_block_size = sizeof(Book) * BLOCKSIZE + sizeof(int) * 2;
 
 Book::Book() = default;
 
-Book::Book(const std::string &ISBN) : Price(0.0),Quantity(0) {
-    std::strncpy(this->ISBN,ISBN.c_str(),20);
+Book::Book(const std::string &ISBN) : Price(0.0), Quantity(0) {
+    std::strncpy(this->ISBN, ISBN.c_str(), 20);
     this->ISBN[20] = '\0';
     this->BookName[0] = '\0';
     this->Author[0] = '\0';
@@ -34,27 +33,22 @@ Book::Book(const std::string &ISBN, const std::string &Bookname, const std::stri
     this->Keyword[60] = '\0';
 }
 
-
 void Book::read(std::fstream &file) {
     file.read(ISBN, 20);
-    ISBN[20] = '\0';
     file.read(BookName, 60);
-    BookName[60] = '\0';
     file.read(Author, 60);
-    Author[60] = '\0';
     file.read(Keyword, 60);
-    Keyword[60] = '\0';
-    file.read(reinterpret_cast<char*>(&Quantity),sizeof(int));
-    file.read(reinterpret_cast<char*>(&Price),sizeof(double));
+    file.read(reinterpret_cast<char*>(&Quantity), sizeof(int));
+    file.read(reinterpret_cast<char*>(&Price), sizeof(double));
 }
 
 void Book::write(std::fstream &file) {
-    file.write(ISBN,20);
-    file.write(BookName,60);
-    file.write(Author,60);
-    file.write(Keyword,60);
-    file.write(reinterpret_cast<char*>(&Quantity),sizeof(int));
-    file.write(reinterpret_cast<char*>(&Price),sizeof(double));
+    file.write(ISBN, 20);
+    file.write(BookName, 60);
+    file.write(Author, 60);
+    file.write(Keyword, 60);
+    file.write(reinterpret_cast<char*>(&Quantity), sizeof(int));
+    file.write(reinterpret_cast<char*>(&Price), sizeof(double));
 }
 
 std::vector<std::string> Book::getKeywords() const {
@@ -65,11 +59,15 @@ std::vector<std::string> Book::getKeywords() const {
             keyword += Keyword[i];
         }
         else {
-            keywords.push_back(keyword);
+            if (!keyword.empty()) {
+                keywords.push_back(keyword);
+            }
             keyword.clear();
         }
     }
-    keywords.push_back(keyword);
+    if (!keyword.empty()) {
+        keywords.push_back(keyword);
+    }
     return keywords;
 }
 
@@ -78,7 +76,7 @@ bool Book::includeKeyword(const std::string &keyword) {
         return true;
     }
     std::vector<std::string> keywords = getKeywords();
-    if (std::find(keywords.begin(),keywords.end(),keyword) != keywords.end()) {
+    if (std::find(keywords.begin(), keywords.end(), keyword) != keywords.end()) {
         return true;
     }
     return false;
@@ -94,26 +92,26 @@ void Book::print() const {
         std::cout << keywords[i] << '|';
     }
     std::cout << keywords.back();
-    std::cout << "\t" << std::fixed << std::setprecision(2) << Price<< "\t" << Quantity;
+    std::cout << "\t" << std::fixed << std::setprecision(2) << Price << "\t" << Quantity;
 }
 
-BookDatabase::BookBlock::BookBlock() : size(0),next_block(-1) {
+BookDatabase::BookBlock::BookBlock() : size(0), next_block(-1) {
     for (int i = 0; i < BLOCKSIZE; ++i) {
         books[i] = Book();
     }
 }
 
 void BookDatabase::BookBlock::read(std::fstream &file) {
-    file.read(reinterpret_cast<char *>(&size),sizeof(int));
-    file.read(reinterpret_cast<char *>(&next_block),sizeof(int));
+    file.read(reinterpret_cast<char *>(&size), sizeof(int));
+    file.read(reinterpret_cast<char *>(&next_block), sizeof(int));
     for (int i = 0; i < size; ++i) {
         books[i].read(file);
     }
 }
 
 void BookDatabase::BookBlock::write(std::fstream &file) {
-    file.write(reinterpret_cast<char *>(&size),sizeof(int));
-    file.write(reinterpret_cast<char *>(&next_block),sizeof(int));
+    file.write(reinterpret_cast<char *>(&size), sizeof(int));
+    file.write(reinterpret_cast<char *>(&next_block), sizeof(int));
     for (int i = 0; i < size; ++i) {
         books[i].write(file);
     }
@@ -121,78 +119,92 @@ void BookDatabase::BookBlock::write(std::fstream &file) {
 
 void BookDatabase::read_block(std::fstream &file, BookBlock &block, int pos) {
     file.seekg(pos * book_block_size);
-    file.read(reinterpret_cast<char *>(&block.size),sizeof(int));
-    file.read(reinterpret_cast<char *> (&block.next_block),sizeof(int));
-    for (int i = 0; i < block.size; ++i) {
-        block.books[i].read(file);
-    }
+    block.read(file);
 }
 
 void BookDatabase::write_block(std::fstream &file, BookBlock &block, int pos) {
     file.seekp(pos * book_block_size);
-    file.write(reinterpret_cast<char *>(&block.size),sizeof(int));
-    file.write(reinterpret_cast<char *> (&block.next_block),sizeof(int));
-    for (int i = 0; i < block.size; ++i) {
-        block.books[i].write(file);
-    }
+    block.write(file);
 }
 
 bool BookDatabase::insertBook(const Book &book) {
-    Book* exist = findBookByISBN(book.ISBN);
-    if (exist != nullptr) {
-        delete exist;
-        book_file.close();
+    // 先检查是否已存在
+    if (bookExists(book.ISBN)) {
         return false;
     }
-    delete exist;
-    book_file.open(file_name,std::ios::in | std::ios::out | std::ios::binary);
+
+    // 打开文件
+    book_file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
+    if (!book_file) {
+        return false;
+    }
+
     BookBlock cur_block;
     int pos = 0;
-    bool flag = false;
-    while (!flag) {
-        read_block(book_file,cur_block,pos);
+    bool inserted = false;
+
+    while (!inserted) {
+        read_block(book_file, cur_block, pos);
+
+        // 找到插入位置（按ISBN字典序）
         int insert_pos = 0;
-        while (insert_pos < cur_block.size && strcmp(cur_block.books[insert_pos].ISBN,book.ISBN) < 0) {
+        while (insert_pos < cur_block.size && strcmp(cur_block.books[insert_pos].ISBN, book.ISBN) < 0) {
             insert_pos++;
         }
         if (cur_block.size < BLOCKSIZE) {
+            // 当前块有空间，直接插入
             for (int i = cur_block.size; i > insert_pos; --i) {
                 cur_block.books[i] = cur_block.books[i - 1];
             }
             cur_block.books[insert_pos] = book;
             cur_block.size++;
-            write_block(book_file,cur_block,pos);
+            write_block(book_file, cur_block, pos);
             addIndex(book, pos);
-            flag = true;
+            inserted = true;
         }
         else {
+            // 当前块已满
             if (cur_block.next_block == -1) {
-                BookBlock new_block = BookBlock();
+                // 需要创建新块
+                BookBlock new_block;
                 int mid = cur_block.size / 2;
+                // 计算新块位置
+                book_file.seekp(0, std::ios::end);
+                int new_pos = book_file.tellp() / book_block_size;
+                // 将后半部分移到新块
                 for (int i = mid; i < cur_block.size; ++i) {
                     new_block.books[new_block.size] = cur_block.books[i];
                     new_block.size++;
                 }
+                // 更新索引
+                for (int i = mid; i < cur_block.size; ++i) {
+                    eraseIndex(cur_block.books[i], pos);
+                    addIndex(cur_block.books[i], new_pos);
+                }
                 cur_block.size = mid;
                 new_block.next_block = cur_block.next_block;
-                cur_block.next_block = book_file.tellp() / book_block_size;
-                write_block(book_file,cur_block,pos);
-                  write_block(book_file,new_block,cur_block.next_block);
-                addIndex(book, cur_block.next_block);
+                cur_block.next_block = new_pos;
+                // 写回两个块
+                write_block(book_file, cur_block, pos);
+                write_block(book_file, new_block, new_pos);
+                // 确定在哪个块插入
                 if (insert_pos >= mid) {
-                    pos = cur_block.next_block;
+                    pos = new_pos;
+                    insert_pos -= mid;
+                    cur_block = new_block;
                 }
-                else {
-                    for (int i = cur_block.size; i > insert_pos; --i) {
-                        cur_block.books[i] = cur_block.books[i - 1];
-                    }
-                    cur_block.books[insert_pos] = book;
-                    cur_block.size++;
-                    write_block(book_file,cur_block,pos);
-                    flag = true;
+                // 在当前块插入
+                for (int i = cur_block.size; i > insert_pos; --i) {
+                    cur_block.books[i] = cur_block.books[i - 1];
                 }
+                cur_block.books[insert_pos] = book;
+                cur_block.size++;
+                write_block(book_file, cur_block, pos);
+                addIndex(book, pos);
+                inserted = true;
             }
             else {
+                // 移动到下一个块
                 pos = cur_block.next_block;
             }
         }
@@ -202,40 +214,49 @@ bool BookDatabase::insertBook(const Book &book) {
 }
 
 bool BookDatabase::eraseBook(const std::string &ISBN) {
-    book_file.open(file_name,std::ios::in | std::ios::out | std::ios::binary);
-    Book* book = findBookByISBN(ISBN);
-    if (book == nullptr) {
-        book_file.close();
+    // 先检查是否存在
+    if (!bookExists(ISBN)) {
         return false;
     }
-    Book found = *book;
-    delete book;
-    BookBlock cur_block,next_block;
+    // 打开文件
+    book_file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
+    if (!book_file) {
+        return false;
+    }
+    BookBlock cur_block, next_block;
     int pos = 0;
     while (pos != -1) {
         read_block(book_file, cur_block, pos);
         // 在当前块中查找图书
         int erase_pos = -1;
+        Book found_book;
         for (int i = 0; i < cur_block.size; i++) {
             if (strcmp(cur_block.books[i].ISBN, ISBN.c_str()) == 0) {
-                eraseIndex(found,pos);
                 erase_pos = i;
+                found_book = cur_block.books[i];
                 break;
             }
         }
         if (erase_pos != -1) {
+            // 删除索引
+            eraseIndex(found_book, pos);
+            // 删除图书
             for (int i = erase_pos; i < cur_block.size - 1; i++) {
                 cur_block.books[i] = cur_block.books[i + 1];
             }
             cur_block.size--;
+            // 检查是否需要合并块
             if (cur_block.size < BLOCKSIZE / 4 && cur_block.next_block != -1) {
                 read_block(book_file, next_block, cur_block.next_block);
                 if (cur_block.size + next_block.size < BLOCKSIZE) {
+                    // 合并到当前块
                     for (int i = 0; i < next_block.size; i++) {
                         cur_block.books[cur_block.size++] = next_block.books[i];
+                        // 更新索引位置
+                        eraseIndex(next_block.books[i], cur_block.next_block);
+                        addIndex(next_block.books[i], pos);
                     }
                     cur_block.next_block = next_block.next_block;
-                    // 写回当前块
                     write_block(book_file, cur_block, pos);
                     book_file.close();
                     return true;
@@ -251,99 +272,92 @@ bool BookDatabase::eraseBook(const std::string &ISBN) {
     book_file.close();
     return false;
 }
-
 Book *BookDatabase::findBookByISBN(const std::string &ISBN) {
-    auto it = ISBN_map.find(ISBN);
-    if (it != ISBN_map.end()) {
-        book_file.open(file_name, std::ios::in | std::ios::binary);
-        int block_pos = it->second;
-        BookBlock block;
-        read_block(book_file, block, block_pos);
-        for (int i = 0; i < block.size; ++i) {
-            if (strcmp(block.books[i].ISBN, ISBN.c_str()) == 0) {
-                Book* result = new Book();
-                *result = block.books[i];
+    // 使用ISBN_map快速定位（需要先重建索引）
+    book_file.open(file_name, std::ios::in | std::ios::binary);
+    if (!book_file) {
+        return nullptr;
+    }
+    BookBlock cur_block;
+    int pos = 0;
+    while (pos != -1) {
+        read_block(book_file, cur_block, pos);
+        // 在当前块中二分查找
+        int l = 0, r = cur_block.size - 1;
+        while (l <= r) {
+            int mid = l + (r - l) / 2;
+            int cmp = strcmp(cur_block.books[mid].ISBN, ISBN.c_str());
+            if (cmp < 0) {
+                l = mid + 1;
+            }
+            else if (cmp > 0) {
+                r = mid - 1;
+            }
+            else {
+                // 找到图书
+                Book* found = new Book();
+                *found = cur_block.books[mid];
                 book_file.close();
-                return result;
+                return found;
             }
         }
-        book_file.close();
+        pos = cur_block.next_block;
     }
-
+    book_file.close();
     return nullptr;
-    // book_file.open(file_name,std::ios::in | std::ios::binary);
-    // if (!book_file) {
-    //     return nullptr;
-    // }
-    // BookBlock cur_block;
-    // int pos = 0;
-    // while (pos != -1) {
-    //     read_block(book_file, cur_block, pos);
-    //     // 在当前块中二分查找
-    //     int l = 0, r = cur_block.size - 1;
-    //     while (l <= r) {
-    //         int mid = l + (r - l) / 2;
-    //         int cmp = strcmp(cur_block.books[mid].ISBN, ISBN.c_str());
-    //         if (cmp < 0) {
-    //             l = mid + 1;
-    //         }
-    //         else if (cmp > 0) {
-    //             r = mid - 1;
-    //         }
-    //         else {
-    //             // 找到图书
-    //             book_file.close();
-    //             Book* found = new Book();
-    //             *found = cur_block.books[mid];
-    //             return found;
-    //         }
-    //     }
-    //     pos = cur_block.next_block;
-    // }
-    // book_file.close();
-    // return nullptr;
 }
 
 bool BookDatabase::updateBook(const Book &book) {
-    Book* old_book = findBookByISBN(book.ISBN);
-    if (!old_book) {
-        delete old_book;
-        return false;
-    }
-    auto it = ISBN_map.find(book.ISBN);
-    if (it == ISBN_map.end()) {
-        delete old_book;
-        return false;
-    }
-    int block_pos = it->second;
-    eraseIndex(*old_book, block_pos);
-    delete old_book;
+    // 打开文件
     book_file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
+    if (!book_file) {
+        return false;
+    }
     BookBlock cur_block;
-    read_block(book_file, cur_block, block_pos);
-    for (int i = 0; i < cur_block.size; i++) {
-        if (strcmp(cur_block.books[i].ISBN, book.ISBN) == 0) {
-            cur_block.books[i] = book;
-            write_block(book_file, cur_block, block_pos);
-            addIndex(book,block_pos);
-            book_file.close();
-            return true;
+    int pos = 0;
+    bool found = false;
+    // 遍历所有块，查找要更新的图书
+    while (pos != -1 && !found) {
+        read_block(book_file, cur_block, pos);
+        // 在当前块中使用二分查找
+        int left = 0, right = cur_block.size - 1;
+        while (left <= right) {
+            int mid = left + (right - left) / 2;
+            int cmp = strcmp(cur_block.books[mid].ISBN, book.ISBN);
+            if (cmp < 0) {
+                left = mid + 1;
+            } else if (cmp > 0) {
+                right = mid - 1;
+            } else {
+                // 找到图书，先删除旧索引
+                eraseIndex(cur_block.books[mid], pos);
+                // 更新图书
+                cur_block.books[mid] = book;
+                write_block(book_file, cur_block, pos);
+                // 添加新索引
+                addIndex(book, pos);
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            pos = cur_block.next_block;
         }
     }
     book_file.close();
-    return false;
+    return found;
 }
 
 std::vector<Book> BookDatabase::findAllBooks() {
     std::vector<Book> all;
-    book_file.open(file_name,std::ios::in | std::ios::binary);
+    book_file.open(file_name, std::ios::in | std::ios::binary);
     if (!book_file) {
         return all;
     }
     BookBlock cur_block;
     int pos = 0;
     while (pos != -1) {
-        read_block(book_file,cur_block,pos);
+        read_block(book_file, cur_block, pos);
         for (int i = 0; i < cur_block.size; ++i) {
             if (strlen(cur_block.books[i].ISBN) == 0) {
                 continue;
@@ -353,86 +367,99 @@ std::vector<Book> BookDatabase::findAllBooks() {
         pos = cur_block.next_block;
     }
     book_file.close();
-    std::sort(all.begin(),all.end());
+    std::sort(all.begin(), all.end());
     return all;
 }
 
 std::vector<Book> BookDatabase::findBooksByBookname(const std::string &bookname) {
     std::vector<Book> res;
-    auto it = name_map.find(bookname);
-    if (it != name_map.end()) {
-        book_file.open(file_name,std::ios::in);
-        for (int pos : name_map[bookname]) {
-            BookBlock block;
-            read_block(book_file,block,pos);
-            for (int i = 0; i < block.size; ++i) {
-                if (strcmp(block.books[i].BookName, bookname.c_str()) == 0 && strlen(block.books[i].ISBN) > 0) {
-                    res.push_back(block.books[i]);
-                }
+    book_file.open(file_name, std::ios::in | std::ios::binary);
+    if (!book_file) {
+        return res;
+    }
+    BookBlock cur_block;
+    int pos = 0;
+    // 遍历所有块
+    while (pos != -1) {
+        read_block(book_file, cur_block, pos);
+        for (int i = 0; i < cur_block.size; ++i) {
+            if (strcmp(cur_block.books[i].BookName, bookname.c_str()) == 0 && strlen(cur_block.books[i].ISBN) > 0) {
+                res.push_back(cur_block.books[i]);
             }
         }
-        book_file.close();
+        pos = cur_block.next_block;
     }
+    book_file.close();
     std::sort(res.begin(), res.end());
     return res;
 }
 
 std::vector<Book> BookDatabase::findBooksByAuthor(const std::string &author) {
     std::vector<Book> res;
-    auto it = author_map.find(author);
-    if (it != author_map.end()) {
-        book_file.open(file_name,std::ios::in);
-        for (int pos : author_map[author]) {
-            BookBlock block;
-            read_block(book_file,block,pos);
-            for (int i = 0; i < block.size; ++i) {
-                if (strcmp(block.books[i].Author, author.c_str() ) == 0 && strlen(block.books[i].ISBN) > 0) {
-                    res.push_back(block.books[i]);
-                }
+    book_file.open(file_name, std::ios::in | std::ios::binary);
+    if (!book_file) {
+        return res;
+    }
+    BookBlock cur_block;
+    int pos = 0;
+    // 遍历所有块
+    while (pos != -1) {
+        read_block(book_file, cur_block, pos);
+        for (int i = 0; i < cur_block.size; ++i) {
+            if (strcmp(cur_block.books[i].Author, author.c_str()) == 0 && strlen(cur_block.books[i].ISBN) > 0) {
+                res.push_back(cur_block.books[i]);
             }
         }
-        book_file.close();
+        pos = cur_block.next_block;
     }
+    book_file.close();
     std::sort(res.begin(), res.end());
     return res;
 }
 
 std::vector<Book> BookDatabase::findBooksByKeyword(const std::string &keyword) {
     std::vector<Book> res;
-    auto it = keyword_map.find(keyword);
-    if (it != keyword_map.end()) {
-        book_file.open(file_name,std::ios::in);
-        for (int pos : keyword_map[keyword]) {
-            BookBlock block;
-            read_block(book_file,block,pos);
-            for (int i = 0; i < block.size; ++i) {
-                if (block.books[i].includeKeyword(keyword) && strlen(block.books[i].ISBN) > 0) {
-                    res.push_back(block.books[i]);
-                }
+    book_file.open(file_name, std::ios::in | std::ios::binary);
+    if (!book_file) {
+        return res;
+    }
+    BookBlock cur_block;
+    int pos = 0;
+    // 遍历所有块
+    while (pos != -1) {
+        read_block(book_file, cur_block, pos);
+        for (int i = 0; i < cur_block.size; ++i) {
+            if (cur_block.books[i].includeKeyword(keyword) && strlen(cur_block.books[i].ISBN) > 0) {
+                res.push_back(cur_block.books[i]);
             }
         }
-        book_file.close();
+        pos = cur_block.next_block;
     }
+    book_file.close();
     std::sort(res.begin(), res.end());
     return res;
 }
 
 void BookDatabase::addIndex(const Book &book, int block_pos) {
-    ISBN_map[book.ISBN] = block_pos;
+    // 更新书名索引
     if (book.BookName[0] != '\0') {
         name_map[book.BookName].push_back(block_pos);
     }
+    // 更新作者索引
     if (book.Author[0] != '\0') {
         author_map[book.Author].push_back(block_pos);
     }
+    // 更新关键词索引
     std::vector<std::string> keywords = book.getKeywords();
     for (const auto& keyword : keywords) {
-        keyword_map[keyword].push_back(block_pos);
+        if (!keyword.empty()) {
+            keyword_map[keyword].push_back(block_pos);
+        }
     }
 }
 
 void BookDatabase::eraseIndex(const Book &book, int block_pos) {
-    ISBN_map.erase(book.ISBN);
+    // 删除书名索引
     if (book.BookName[0] != '\0') {
         auto name_it = name_map.find(book.BookName);
         if (name_it != name_map.end()) {
@@ -443,6 +470,7 @@ void BookDatabase::eraseIndex(const Book &book, int block_pos) {
             }
         }
     }
+    // 删除作者索引
     if (book.Author[0] != '\0') {
         auto author_it = author_map.find(book.Author);
         if (author_it != author_map.end()) {
@@ -453,7 +481,7 @@ void BookDatabase::eraseIndex(const Book &book, int block_pos) {
             }
         }
     }
-
+    // 删除关键词索引
     std::vector<std::string> keywords = book.getKeywords();
     for (const auto& keyword : keywords) {
         if (!keyword.empty()) {
@@ -470,7 +498,7 @@ void BookDatabase::eraseIndex(const Book &book, int block_pos) {
 }
 
 void BookDatabase::rebuildIndex() {
-    ISBN_map.clear();
+    // 清空所有索引
     name_map.clear();
     author_map.clear();
     keyword_map.clear();
@@ -479,13 +507,12 @@ void BookDatabase::rebuildIndex() {
     if (!book_file) {
         return;
     }
-    int pos = 0;
     BookBlock block;
+    int pos = 0;
     while (true) {
         read_block(book_file, block, pos);
         for (int i = 0; i < block.size; ++i) {
             // 添加索引
-            ISBN_map[block.books[i].ISBN] = pos;
             if (block.books[i].BookName[0] != '\0') {
                 name_map[block.books[i].BookName].push_back(pos);
             }
@@ -521,42 +548,56 @@ BookDatabase::~BookDatabase() {
 }
 
 void BookDatabase::initialize() {
-    book_file.open(file_name,std::ios::in | std::ios::out);
+    book_file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
     if (!book_file) {
-        book_file.open(file_name,std::ios::out );
+        // 文件不存在，创建并初始化
+        book_file.open(file_name, std::ios::out | std::ios::binary);
         book_file.close();
-        book_file.open(file_name,std::ios::in | std::ios::out);
+        book_file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
+
+        // 写入第一个块
+        BookBlock headblock;
+        headblock.size = 0;
+        headblock.next_block = -1;
+        write_block(book_file, headblock, 0);
+    } else {
+        // 文件已存在，检查是否为空
+        book_file.seekg(0, std::ios::end);
+        if (book_file.tellg() == 0) {
+            // 文件为空，需要初始化
+            BookBlock headblock;
+            headblock.size = 0;
+            headblock.next_block = -1;
+            write_block(book_file, headblock, 0);
+        }
     }
-    //写入第一个块
-    BookBlock headblock;
-    headblock.size = 1;
-    headblock.next_block = -1;
-    write_block(book_file,headblock,0);
+    // 重建索引
     rebuildIndex();
     book_file.close();
 }
 
 bool BookDatabase::Add(const Book &book) {
+    // 检查ISBN是否已存在
     if (bookExists(book.ISBN)) {
         return false;
     }
-    if (!isValidAuthor(book.Author) || !isValidBookName(book.BookName) || !isValidISBN(book.ISBN) || !isValidKeyword(book.Keyword) || !isValidPrice(book.Price) || !isValidQuantity(book.Quantity)) {
+    // 验证所有字段的合法性
+    if (!isValidISBN(book.ISBN) || !isValidBookName(book.BookName) ||
+        !isValidAuthor(book.Author) || !isValidKeyword(book.Keyword) ||
+        !isValidQuantity(book.Quantity) || !isValidPrice(book.Price)) {
         return false;
     }
-    if (!insertBook(book)) {
-        return false;
-    }
-    return true;
+    // 插入图书
+    return insertBook(book);
 }
 
 bool BookDatabase::Delete(const std::string &ISBN) {
+    // 检查ISBN是否存在
     if (!bookExists(ISBN)) {
         return false;
     }
-    if (!eraseBook(ISBN)) {
-        return false;
-    }
-    return true;
+    // 删除图书
+    return eraseBook(ISBN);
 }
 
 std::vector<Book> BookDatabase::showAllBooks() {
@@ -580,22 +621,34 @@ std::vector<Book> BookDatabase::showBooksByKeyword(const std::string &keyword) {
 }
 
 double BookDatabase::Buy(const std::string &ISBN, int Quantity) {
+    // 检查购买数量是否合法
+    if (Quantity <= 0) {
+        return 0;
+    }
+    // 查找图书
     Book* book = findBookByISBN(ISBN);
     if (book == nullptr || book->Quantity < Quantity) {
         delete book;
         return 0;
     }
+    // 更新库存
     book->Quantity -= Quantity;
-    updateBook(*book);
+    if (!updateBook(*book)) {
+        delete book;
+        return 0;
+    }
+    // 计算总价
     double expense = book->Price * Quantity;
     delete book;
     return expense;
 }
 
 void BookDatabase::Select(const std::string &ISBN) {
+    // 验证ISBN
     if (!isValidISBN(ISBN) || ISBN.empty()) {
         return;
     }
+    // 如果图书不存在，创建新图书
     if (!bookExists(ISBN)) {
         Book new_book(ISBN);
         new_book.Quantity = 0;
@@ -603,30 +656,28 @@ void BookDatabase::Select(const std::string &ISBN) {
         new_book.BookName[0] = '\0';
         new_book.Author[0] = '\0';
         new_book.Keyword[0] = '\0';
-        insertBook(new_book);
+        if (!insertBook(new_book)) {
+            return;
+        }
     }
+    // 设置选中图书
     selected_ISBN = ISBN;
 }
 
 bool BookDatabase::Modify(int type, const std::string &info) {
+    // 检查是否有选中图书
     if (selected_ISBN.empty()) {
         return false;
     }
+    // 查找图书
     Book* book = findBookByISBN(selected_ISBN);
     if (book == nullptr) {
-        delete book;
         return false;
     }
     Book old_book = *book;
-    auto it = ISBN_map.find(selected_ISBN);
-    if (it == ISBN_map.end()) {
-        delete book;
-        return false;
-    }
-    int block_pos = it->second;
+    bool success = false;
     switch (type) {
-        case 1: // 修改ISBN
-        {
+        case 1: { // 修改ISBN
             if (!isValidISBN(info)) {
                 delete book;
                 return false;
@@ -641,32 +692,25 @@ bool BookDatabase::Modify(int type, const std::string &info) {
                 delete book;
                 return false;
             }
-            std::string old_ISBN = selected_ISBN;
-            strncpy(book->ISBN, info.c_str(), 20);
-            book->ISBN[20] = '\0';
-            book_file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
-            BookBlock cur_block;
-            read_block(book_file, cur_block, block_pos);
-            int erase_pos = -1;
-            for (int i = 0; i < cur_block.size; i++) {
-                if (strcmp(cur_block.books[i].ISBN, old_ISBN.c_str()) == 0) {
-                    erase_pos = i;
-                    break;
-                }
+            // 创建新书（使用新ISBN和旧书的其他信息）
+            Book new_book = old_book;
+            strncpy(new_book.ISBN, info.c_str(), 20);
+            new_book.ISBN[20] = '\0';
+            // 从文件中删除旧书
+            if (!eraseBook(old_book.ISBN)) {
+                delete book;
+                return false;
             }
-            if (erase_pos != -1) {
-                eraseIndex(old_book, block_pos);
-                for (int i = erase_pos; i < cur_block.size - 1; i++) {
-                    cur_block.books[i] = cur_block.books[i + 1];
-                }
-                cur_block.size--;
-                write_block(book_file, cur_block, block_pos);
+            // 插入新书
+            if (insertBook(new_book)) {
+                selected_ISBN = info;
+                success = true;
+            } else {
+                // 插入失败，尝试恢复旧书
+                insertBook(old_book);
+                success = false;
             }
-            book_file.close();
-            insertBook(*book);
-            selected_ISBN = info;
-            delete book;
-            return true;
+            break;
         }
         case 2: // 修改书名
             if (!isValidBookName(info)) {
@@ -675,6 +719,7 @@ bool BookDatabase::Modify(int type, const std::string &info) {
             }
             strncpy(book->BookName, info.c_str(), 60);
             book->BookName[60] = '\0';
+            success = updateBook(*book);
             break;
         case 3: // 修改作者
             if (!isValidAuthor(info)) {
@@ -683,6 +728,7 @@ bool BookDatabase::Modify(int type, const std::string &info) {
             }
             strncpy(book->Author, info.c_str(), 60);
             book->Author[60] = '\0';
+            success = updateBook(*book);
             break;
         case 4: // 修改关键词
             if (!isValidKeyword(info)) {
@@ -691,38 +737,48 @@ bool BookDatabase::Modify(int type, const std::string &info) {
             }
             strncpy(book->Keyword, info.c_str(), 60);
             book->Keyword[60] = '\0';
+            success = updateBook(*book);
             break;
-        case 5: // 修改价格
+        case 5: { // 修改价格
             double price = std::stod(info);
             if (!isValidPrice(price)) {
                 delete book;
                 return false;
             }
             book->Price = price;
+            success = updateBook(*book);
+            break;
+        }
+        default:
+            success = false;
             break;
     }
-    updateBook(*book);
+
     delete book;
-    return true;
+    return success;
 }
 
 bool BookDatabase::Import(int Quantity, double TotalCost) {
+    // 验证参数
     if (!isValidQuantity(Quantity) || TotalCost <= 0) {
         return false;
     }
+    // 检查是否有选中图书
     if (selected_ISBN.empty()) {
         return false;
     }
+    // 查找图书
     Book* book = findBookByISBN(selected_ISBN);
     if (book == nullptr) {
         return false;
     }
+    // 更新库存
     book->Quantity += Quantity;
     bool success = updateBook(*book);
     delete book;
     return success;
 }
-
+ 
 bool BookDatabase::isValidISBN(const std::string &ISBN) {
     if (ISBN.empty() || ISBN.length() > 20) {
         return false;
@@ -763,20 +819,23 @@ bool BookDatabase::isValidKeyword(const std::string &keyword) {
     if (keyword.empty() || keyword.length() > 60) {
         return false;
     }
-    for (char c: keyword) {
+    // 检查字符合法性
+    for (char c : keyword) {
         if (c <= 32 || c > 126 || c == '"') {
             return false;
         }
     }
-
     // 检查关键词段是否重复
     std::vector<std::string> keywords;
     std::string cur;
-    for (int i = 0; i < 60 && keyword[i] != '\0'; ++i) {
+    for (size_t i = 0; i < keyword.length(); ++i) {
         if (keyword[i] != '|') {
             cur += keyword[i];
         }
         else {
+            if (cur.empty()) {
+                return false;
+            }
             keywords.push_back(cur);
             cur.clear();
         }
@@ -785,7 +844,8 @@ bool BookDatabase::isValidKeyword(const std::string &keyword) {
         return false;
     }
     keywords.push_back(cur);
-    std::set <std::string> tmp(keywords.begin(),keywords.end());
+    // 检查重复
+    std::set<std::string> tmp(keywords.begin(), keywords.end());
     if (tmp.size() < keywords.size()) {
         return false;
     }
@@ -808,22 +868,10 @@ bool BookDatabase::bookExists(const std::string &ISBN) {
     if (!isValidISBN(ISBN)) {
         return false;
     }
-    if (ISBN_map.find(ISBN) != ISBN_map.end()) {
-        return true;
-    }
-    return false;
+
+    Book* book = findBookByISBN(ISBN);
+    bool exists = (book != nullptr);
+    delete book;
+    return exists;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 

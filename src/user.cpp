@@ -244,20 +244,51 @@ UserDatabase::~UserDatabase() {
 }
 
 void UserDatabase::initialize() {
-    user_file.open(file_name,std::ios::in | std::ios::out);
+    user_file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
     if (!user_file) {
-        user_file.open(file_name,std::ios::out);
+        // 文件不存在，创建并初始化
+        user_file.open(file_name, std::ios::out | std::ios::binary);
         user_file.close();
-        user_file.open(file_name,std::ios::in | std::ios::out);
+        user_file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
+
+        //写入第一个块
+        BlockNode headblock;
+        headblock.size = 1;
+        headblock.next_block = -1;
+        //创建店主root账户
+        User root = User("root","sjtu",7,"shopkeeper");
+        headblock.users[0] = root;
+        write_block(user_file,headblock,0);
+    } else {
+        // 文件已存在，检查是否为空
+        user_file.seekg(0, std::ios::end);
+        if (user_file.tellg() == 0) {
+            // 文件为空，需要初始化
+            BlockNode headblock;
+            headblock.size = 1;
+            headblock.next_block = -1;
+            User root = User("root","sjtu",7,"shopkeeper");
+            headblock.users[0] = root;
+            write_block(user_file,headblock,0);
+        }
     }
-    //写入第一个块
-    BlockNode headblock;
-    headblock.size = 1;
-    headblock.next_block = -1;
-    //创建店主root账户
-    User root = User("root","sjtu",7,"shopkeeper");
-    headblock.users[0] = root;
-    write_block(user_file,headblock,0);
+    user_file.close();
+}
+// void UserDatabase::initialize() {
+    // user_file.open(file_name,std::ios::in | std::ios::out);
+    // if (!user_file) {
+    //     user_file.open(file_name,std::ios::out);
+    //     user_file.close();
+    //     user_file.open(file_name,std::ios::in | std::ios::out);
+    // }
+    // //写入第一个块
+    // BlockNode headblock;
+    // headblock.size = 1;
+    // headblock.next_block = -1;
+    // //创建店主root账户
+    // User root = User("root","sjtu",7,"shopkeeper");
+    // headblock.users[0] = root;
+    // write_block(user_file,headblock,0);
 
     // else {
     //     user_file.seekg(0, std::ios::end);
@@ -271,8 +302,8 @@ void UserDatabase::initialize() {
     //         write_block(user_file, headblock, 0);
     //     }
     // }
-    user_file.close();
-}
+//     user_file.close();
+// }
 
 bool UserDatabase::Login(const std::string &UserID, const std::string &Password) {
     User* user = find(UserID);

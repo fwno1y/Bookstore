@@ -778,7 +778,7 @@ bool BookDatabase::Import(int Quantity, double TotalCost) {
     delete book;
     return success;
 }
- 
+
 bool BookDatabase::isValidISBN(const std::string &ISBN) {
     if (ISBN.empty() || ISBN.length() > 20) {
         return false;

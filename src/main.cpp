@@ -54,6 +54,7 @@ void logOperation(const std::string& operation) {
 //解析show和modify的参数
 bool parse(const std::vector<std::string>& tokens,
                std::vector<std::pair<std::string, std::string>>& info) {
+    std::cerr << "entering parse" << std::endl;
     for (int i = 1; i < tokens.size(); ++i) {
         std::string token = tokens[i];
 
@@ -69,6 +70,8 @@ bool parse(const std::vector<std::string>& tokens,
         std::string key = token.substr(0, pos);
         std::string value = token.substr(pos + 1);
 
+        std::cerr << key << "/" << value << std::endl;
+
         // 去除value中的双引号
         if (value.length() >= 2 && value[0] == '"' && value.back() == '"') {
             value = value.substr(1, value.length() - 2);
@@ -76,7 +79,7 @@ bool parse(const std::vector<std::string>& tokens,
 
         info.emplace_back(key, value);
     }
-
+    std::cerr << "parse finished" << std::endl;
     return true;
 }
 
@@ -86,9 +89,16 @@ int main() {
         if (line.empty()) {
             continue;
         }
+        if (line.back() == '\r') {
+            line.pop_back();
+        }
+        std::cerr << "still alive" << std::endl;
         std::vector<std::string> tokens = splitCommand(line);
         if (tokens.empty()) {
             continue;
+        }
+        for (auto tok : tokens) {
+            std::cerr << tok << std::endl;
         }
         const std::string& command = tokens[0];
         try {
@@ -97,24 +107,30 @@ int main() {
                     std::cout << "Invalid\n";
                     continue;
                 }
+                MyUserDatabase.flush();
                 break;
             }
             //账户系统指令
             else if (command == "su") {
                 if (!checkPrivilege(0)) {
+                    std::cerr << "bad priv" << std::endl;
                     std::cout << "Invalid\n";
                     continue;
                 }
                 if (tokens.size() < 2 || tokens.size() > 3) {
+                    std::cerr << "bad size" << std::endl;
                     std::cout << "Invalid\n";
                     continue;
                 }
                 std::string userID = tokens[1];
                 std::string password = tokens.size() == 3 ? tokens[2] : "";
 
+                std::cerr << userID << " " << password << std::endl;
+
                 if (MyUserDatabase.Login(userID, password)) {
-                    logOperation("su " + userID);
+                    //logOperation("su " + userID);
                 } else {
+                    std::cerr << "bad login" << std::endl;
                     std::cout << "Invalid\n";
                 }
             }
@@ -126,7 +142,7 @@ int main() {
                 }
 
                 if (MyUserDatabase.Logout()) {
-                    logOperation("logout");
+                    //logOperation("logout");
                 } else {
                     std::cout << "Invalid\n";
                 }
@@ -148,7 +164,7 @@ int main() {
                 std::string username = tokens[3];
 
                 if (MyUserDatabase.Register(userID, password, username)) {
-                    logOperation("register " + userID);
+                    //logOperation("register " + userID);
                 } else {
                     std::cout << "Invalid\n";
                 }
@@ -178,7 +194,7 @@ int main() {
                     if (!MyUserDatabase.ChangePassword(userID, "", newPassword)) {
                         std::cout << "Invalid\n";
                     } else {
-                        logOperation("passwd " + userID);
+                        //logOperation("passwd " + userID);
                     }
                 } else {
                     currentPassword = tokens[2];
@@ -186,7 +202,7 @@ int main() {
                     if (!MyUserDatabase.ChangePassword(userID, currentPassword, newPassword)) {
                         std::cout << "Invalid\n";
                     } else {
-                        logOperation("passwd " + userID);
+                        //logOperation("passwd " + userID);
                     }
                 }
             }
@@ -213,7 +229,7 @@ int main() {
                 }
 
                 if (MyUserDatabase.UserAdd(userID, password, privilege, username)) {
-                    logOperation("useradd " + userID);
+                    //logOperation("useradd " + userID);
                 } else {
                     std::cout << "Invalid\n";
                 }
@@ -233,7 +249,7 @@ int main() {
                 std::string userID = tokens[1];
 
                 if (MyUserDatabase.Delete(userID)) {
-                    logOperation("delete " + userID);
+                    //logOperation("delete " + userID);
                 } else {
                     std::cout << "Invalid\n";
                 }
@@ -254,11 +270,11 @@ int main() {
 
                     if (tokens.size() == 2) {
                         MyDealDatabase.showDeal(-1);
-                        logOperation("show finance");
+                        //logOperation("show finance");
                     } else if (tokens.size() == 3) {
                         int count = std::stoi(tokens[2]);
                         MyDealDatabase.showDeal(count);
-                        logOperation("show finance " + tokens[2]);
+                        //logOperation("show finance " + tokens[2]);
                     } else {
                         std::cout << "Invalid\n";
                     }
@@ -278,9 +294,12 @@ int main() {
                         books = MyBookDatabase.showAllBooks();
                     }
                     else if (info.size() == 1) {
+                        std::cerr << info.size() << std::endl;
                         auto& it = info[0];
                         if (it.first == "-ISBN") {
+                            std::cerr << it.second << std::endl;
                             Book* book = MyBookDatabase.showBooksByISBN(it.second);
+                            std::cerr << "sa" << std::endl;
                             if (book) {
                                 books.push_back(*book);
                                 delete book;
@@ -305,6 +324,7 @@ int main() {
                     }
 
                     // 输出图书信息
+                    std::cerr << books.size() << std::endl;
                     if (books.empty()) {
                         std::cout << '\n';
                     }
@@ -314,7 +334,8 @@ int main() {
                             std::cout << "\n";
                         }
                     }
-                    logOperation("show books");
+                    std::cerr << "printed" << std::endl;
+                    //logOperation("show books");
                 }
             }
 
@@ -341,7 +362,7 @@ int main() {
                 if (expense > 0) {
                     std::cout << std::fixed << std::setprecision(2) << expense << "\n";
                     MyDealDatabase.addDeal(expense, 0);
-                    logOperation("buy " + ISBN + " " + std::to_string(quantity));
+                    //logOperation("buy " + ISBN + " " + std::to_string(quantity));
                 } else {
                     std::cout << "Invalid\n";
                 }
@@ -358,12 +379,17 @@ int main() {
                     continue;
                 }
 
+                std::cerr << "sa1" << std::endl;
                 std::string ISBN = tokens[1];
+                std::cerr << "sa2" << std::endl;
                 MyBookDatabase.Select(ISBN);
+                std::cerr << "sa3" << std::endl;
                 std::string selectedISBN = MyBookDatabase.getSelectedISBN();
+                std::cerr << "sa4" << std::endl;
                 MyUserDatabase.set_selected_book(selectedISBN);
+                std::cerr << "sa5" << std::endl;
                 // std::cout << selectedISBN << std::endl;
-                logOperation("select " + ISBN);
+                // //logOperation("select " + ISBN);
             }
 
             else if (command == "modify") {
@@ -422,7 +448,7 @@ int main() {
                     }
                 }
 
-                logOperation("modify book");
+                //logOperation("modify book");
             }
 
             else if (command == "import") {
@@ -446,7 +472,7 @@ int main() {
 
                 if (MyBookDatabase.Import(quantity, totalCost)) {
                     MyDealDatabase.addDeal(0, totalCost);
-                    logOperation("import " + std::to_string(quantity));
+                    //logOperation("import " + std::to_string(quantity));
                 } else {
                     std::cout << "Invalid\n";
                 }
@@ -458,7 +484,7 @@ int main() {
                     continue;
                 }
                 MyLogDatabase.generateLogReport();
-                logOperation("log");
+                //logOperation("log");
             }
 
             else if (command == "report") {
@@ -472,10 +498,10 @@ int main() {
                 }
                 if (tokens[1] == "finance") {
                     MyDealDatabase.generateDealReport();
-                    logOperation("report finance");
+                    //logOperation("report finance");
                 } else if (tokens[1] == "employee") {
                     MyLogDatabase.generateEmployeeReport();
-                    logOperation("report employee");
+                    //logOperation("report employee");
                 } else {
                     std::cout << "Invalid\n";
                 }
@@ -483,14 +509,13 @@ int main() {
             else {
                 std::cout << "Invalid\n";
             }
-
         } catch (const std::exception& e) {
             std::cout << "Invalid\n";
         }
     }
     // std::ofstream("book.txt", std::ios::trunc).close();
     // std::ofstream("user.txt", std::ios::trunc).close();
-    std::ofstream("log.txt", std::ios::trunc).close();
-    std::ofstream("deal.txt", std::ios::trunc).close();
+    // std::ofstream("log.txt", std::ios::trunc).close();
+    // std::ofstream("deal.txt", std::ios::trunc).close();
     return 0;
 }

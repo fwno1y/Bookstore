@@ -187,7 +187,7 @@ def run_test_group(group):
         
         # 运行测试
         success, output, elapsed_time, error = run_single_test(point_id, input_file)
-        
+
         if not success:
             print(f" {Colors.RED}✗ 错误{Colors.ENDC} ({elapsed_time:.1f}ms)")
             results.append({
@@ -196,7 +196,8 @@ def run_test_group(group):
                 'message': error,
                 'time': elapsed_time
             })
-            break  # 遇到错误立即停止
+            break  # 停止nm
+            # continue
         
         # 比对结果
         correct, diff = compare_output(output, answer_file)

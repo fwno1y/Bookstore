@@ -1,7 +1,5 @@
 #include "user.h"
-
 #include <algorithm>
-
 #include "user_database.h"
 #include <iostream>
 #include <fstream>
@@ -18,16 +16,26 @@ User::User(const std::string& UserID, const std::string& Password, int Privilege
 }
 
 void User::read(std::fstream &file) {
-    file.read(UserID, 30);
-    file.read(Password,30);
-    file.read(Username,30);
-    file.read(reinterpret_cast<char*>(&Privilege),sizeof(int));
+    file.read(UserID, 31);
+    UserID[30] = '\0';
+    file.read(Password, 31);
+    Password[30] = '\0';
+    file.read(Username, 31);
+    Username[30] = '\0';
+    file.read(reinterpret_cast<char*>(&Privilege), sizeof(int));
+    // file.read(UserID, 30);
+    // file.read(Password,30);
+    // file.read(Username,30);
+    // file.read(reinterpret_cast<char*>(&Privilege),sizeof(int));
 }
 
 void User::write(std::fstream &file) {
-    file.write(UserID, 30);
-    file.write(Password,30);
-    file.write(Username,30);
+    UserID[30] = '\0';
+    Password[30] = '\0';
+    Username[30] = '\0';
+    file.write(UserID, 31);
+    file.write(Password,31);
+    file.write(Username,31);
     file.write(reinterpret_cast<char*>(&Privilege),sizeof(int));
 }
 
@@ -178,7 +186,7 @@ bool UserDatabase::erase(const std::string &UserID) {
 }
 
 User *UserDatabase::find(const std::string &UserID) {
-    user_file.open(file_name,std::ios::in | std::ios::out);
+    user_file.open(file_name,std::ios::in);
     if (!user_file) {
         user_file.close();
         return nullptr;
@@ -188,9 +196,12 @@ User *UserDatabase::find(const std::string &UserID) {
     while (pos != -1) {
         read_block(user_file,cur_block,pos);
         int l = 0,r = cur_block.size - 1;
+        std::cerr << cur_block.size << std::endl;
         while (l <= r) {
             int mid = l + (r - l) / 2;
+            std::cerr << "mid=" << cur_block.users[mid].UserID << std::endl;
             int cmp = std::strcmp(cur_block.users[mid].UserID,UserID.c_str());
+            std::cerr << "cmp=" << cmp << std::endl;
             if (cmp > 0) {
                 r = mid - 1;
             }
@@ -239,18 +250,53 @@ UserDatabase::UserDatabase(const std::string &user_file) {
 }
 
 UserDatabase::~UserDatabase() {
+    flush();
     Login_stack.clear();
-    user_file.close();
+    if (user_file.is_open()) {
+        user_file.close();
+    }
 }
 
+// void UserDatabase::initialize() {
+//     user_file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
+//     if (!user_file) {
+//         // 文件不存在，创建并初始化
+//         user_file.open(file_name, std::ios::out | std::ios::binary);
+//         user_file.close();
+//         user_file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
+//
+//         //写入第一个块
+//         BlockNode headblock;
+//         headblock.size = 1;
+//         headblock.next_block = -1;
+//         //创建店主root账户
+//         User root = User("root","sjtu",7,"shopkeeper");
+//         headblock.users[0] = root;
+//         write_block(user_file,headblock,0);
+//     } else {
+//         // 文件已存在，检查是否为空
+//         user_file.seekg(0, std::ios::end);
+//         if (user_file.tellg() == 0) {
+//             // 文件为空，需要初始化
+//             BlockNode headblock;
+//             headblock.size = 1;
+//             headblock.next_block = -1;
+//             User root = User("root","sjtu",7,"shopkeeper");
+//             headblock.users[0] = root;
+//             write_block(user_file,headblock,0);
+//         }
+//     }
+//     user_file.close();
+// }
 void UserDatabase::initialize() {
-    user_file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
+    user_file.open(file_name,std::ios::in | std::ios::out);
     if (!user_file) {
-        // 文件不存在，创建并初始化
-        user_file.open(file_name, std::ios::out | std::ios::binary);
+        user_file.open(file_name,std::ios::out);
         user_file.close();
-        user_file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
-
+        user_file.open(file_name,std::ios::in | std::ios::out);
+    }
+    user_file.seekg(0,std::ios::end);
+    if (user_file.tellg() == 0) {
         //写入第一个块
         BlockNode headblock;
         headblock.size = 1;
@@ -259,36 +305,7 @@ void UserDatabase::initialize() {
         User root = User("root","sjtu",7,"shopkeeper");
         headblock.users[0] = root;
         write_block(user_file,headblock,0);
-    } else {
-        // 文件已存在，检查是否为空
-        user_file.seekg(0, std::ios::end);
-        if (user_file.tellg() == 0) {
-            // 文件为空，需要初始化
-            BlockNode headblock;
-            headblock.size = 1;
-            headblock.next_block = -1;
-            User root = User("root","sjtu",7,"shopkeeper");
-            headblock.users[0] = root;
-            write_block(user_file,headblock,0);
-        }
     }
-    user_file.close();
-}
-// void UserDatabase::initialize() {
-    // user_file.open(file_name,std::ios::in | std::ios::out);
-    // if (!user_file) {
-    //     user_file.open(file_name,std::ios::out);
-    //     user_file.close();
-    //     user_file.open(file_name,std::ios::in | std::ios::out);
-    // }
-    // //写入第一个块
-    // BlockNode headblock;
-    // headblock.size = 1;
-    // headblock.next_block = -1;
-    // //创建店主root账户
-    // User root = User("root","sjtu",7,"shopkeeper");
-    // headblock.users[0] = root;
-    // write_block(user_file,headblock,0);
 
     // else {
     //     user_file.seekg(0, std::ios::end);
@@ -302,22 +319,33 @@ void UserDatabase::initialize() {
     //         write_block(user_file, headblock, 0);
     //     }
     // }
-//     user_file.close();
-// }
+    user_file.close();
+}
 
 bool UserDatabase::Login(const std::string &UserID, const std::string &Password) {
     User* user = find(UserID);
     if (user == nullptr) {
-        delete user;
+        std::cerr << "404" << std::endl;
         return false;
     }
     CurrentUser cur_user = CurrentUser(*user,"");
     int cur_Privilege = getCurrentPrivilege();
-    if (cur_Privilege > user->Privilege || strcmp(Password.c_str(),user->Password) == 0) {
+    bool canLogin = false;
+    if (cur_Privilege > user->Privilege) {
+        canLogin = true;  // 特权更高，无需密码
+    } else if (strcmp(Password.c_str(), user->Password) == 0) {
+        canLogin = true;  // 密码正确
+    }
+    if (canLogin) {
         Login_stack.push_back(cur_user);
         delete user;
         return true;
     }
+    // if (cur_Privilege > user->Privilege || strcmp(Password.c_str(),user->Password) == 0) {
+    //     Login_stack.push_back(cur_user);
+    //     delete user;
+    //     return true;
+    // }
     //判断已经登录但是被覆盖
     // for (int i = 0; i < Login_stack.size(); ++i) {
     //     if (strcmp(Login_stack[i].user.UserID, UserID.c_str()) == 0) {
@@ -472,14 +500,8 @@ std::string UserDatabase::get_selected_book() {
     return Login_stack.back().selected_book;
 }
 
-
-
-
-
-
-
-
-
-
-
-
+void UserDatabase::flush() {
+    if (user_file.is_open()) {
+        user_file.flush();
+    }
+}

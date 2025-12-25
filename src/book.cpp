@@ -83,15 +83,26 @@ bool Book::includeKeyword(const std::string &keyword) {
 }
 
 void Book::print() const {
+    std::cerr << "book p" << std::endl;
     if (strlen(ISBN) == 0) {
         return;
     }
+    std::cerr << "p1" << std::endl;
     std::cout << ISBN << "\t" << BookName << "\t" << Author << "\t";
+    std::cerr << "p2" << std::endl;
     std::vector<std::string> keywords = getKeywords();
-    for (int i = 0; i < keywords.size() - 1; ++i) {
+    std::cerr << "p3" << std::endl;
+    std::cerr << "kw siz" << keywords.size() << std::endl;
+    if (keywords.size()) for (int i = 0; i < keywords.size() - 1; ++i) {
+        std::cerr << "i=" << i << std::endl;
         std::cout << keywords[i] << '|';
     }
-    std::cout << keywords.back();
+    std::cerr << "p4" << std::endl;
+    if (keywords.size()) {
+        std::cerr << "not empty" << std::endl;
+        std::cout << keywords.back();
+    }
+    std::cerr << "p5" << std::endl;
     std::cout << "\t" << std::fixed << std::setprecision(2) << Price << "\t" << Quantity;
 }
 
@@ -554,13 +565,13 @@ void BookDatabase::initialize() {
         book_file.open(file_name, std::ios::out | std::ios::binary);
         book_file.close();
         book_file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
-
         // 写入第一个块
         BookBlock headblock;
         headblock.size = 0;
         headblock.next_block = -1;
         write_block(book_file, headblock, 0);
-    } else {
+    }
+    else {
         // 文件已存在，检查是否为空
         book_file.seekg(0, std::ios::end);
         if (book_file.tellg() == 0) {
@@ -868,7 +879,6 @@ bool BookDatabase::bookExists(const std::string &ISBN) {
     if (!isValidISBN(ISBN)) {
         return false;
     }
-
     Book* book = findBookByISBN(ISBN);
     bool exists = (book != nullptr);
     delete book;

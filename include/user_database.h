@@ -70,6 +70,7 @@ public:
 
     std::string get_selected_book();
 
+    void flush();
 };
 
 #endif //BOOKSTORE_2025_USER_DATABASE_H

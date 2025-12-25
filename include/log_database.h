@@ -5,7 +5,7 @@
 
 struct Log {
     char operator_ID[61]{};
-    char operation[20]{};
+    char operation[30]{};
     int Privilege{};
 
     Log();

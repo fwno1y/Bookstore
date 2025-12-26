@@ -15,7 +15,7 @@ std::vector<std::string> splitCommand(const std::string& command) {
     std::vector<std::string> tokens;
     std::string token;
     bool flag = false;
-    for (size_t i = 0; i < command.length(); ++i) {
+    for (int i = 0; i < command.length(); ++i) {
         char c = command[i];
         if (c == '"') {
             flag = !flag;
@@ -64,14 +64,53 @@ bool parse(const std::vector<std::string>& tokens,std::vector<std::pair<std::str
         }
         std::string key = token.substr(0, pos);
         std::string value = token.substr(pos + 1);
-        // 去除value中的双引号
-        if (value.length() >= 2 && value[0] == '"' && value.back() == '"') {
+        // 检查是否需要引号
+        if (key == "-name" || key == "-author" || key == "-keyword") {
+            if (value.length() < 2 || value[0] != '"' || value.back() != '"') {
+                return false;
+            }
             value = value.substr(1, value.length() - 2);
+            if (value.empty()) {
+                return false;
+            }
+        }
+        else if (key == "-ISBN" || key == "-price") {
+            if (value.find('"') != std::string::npos) {
+                return false;
+            }
+            if (value.empty()) {
+                return false;
+            }
+            //检查小数点 
+            if (key == "-price") {
+                bool flag = false;
+                for (char c : value) {
+                    if (c == '.') {
+                        if (flag) {
+                            return false;
+                        }
+                        flag = true;
+                    } else if (!isdigit(c)) {
+                        return false;
+                    }
+                }
+                if (flag) {
+                    int pos = value.find('.');
+                    if (value.length() - pos - 1 > 2) {
+                        return false;
+                    }
+                }
+            }
+        }
+        else {
+            return false; // 未知参数
         }
         info.emplace_back(key, value);
     }
     return true;
 }
+
+
 
 int main() {
     std::string line;

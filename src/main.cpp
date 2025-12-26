@@ -54,7 +54,6 @@ void logOperation(const std::string& operation) {
 //解析show和modify的参数
 bool parse(const std::vector<std::string>& tokens,
                std::vector<std::pair<std::string, std::string>>& info) {
-    std::cerr << "entering parse" << std::endl;
     for (int i = 1; i < tokens.size(); ++i) {
         std::string token = tokens[i];
 
@@ -70,8 +69,6 @@ bool parse(const std::vector<std::string>& tokens,
         std::string key = token.substr(0, pos);
         std::string value = token.substr(pos + 1);
 
-        std::cerr << key << "/" << value << std::endl;
-
         // 去除value中的双引号
         if (value.length() >= 2 && value[0] == '"' && value.back() == '"') {
             value = value.substr(1, value.length() - 2);
@@ -79,7 +76,6 @@ bool parse(const std::vector<std::string>& tokens,
 
         info.emplace_back(key, value);
     }
-    std::cerr << "parse finished" << std::endl;
     return true;
 }
 
@@ -92,13 +88,9 @@ int main() {
         if (line.back() == '\r') {
             line.pop_back();
         }
-        std::cerr << "still alive" << std::endl;
         std::vector<std::string> tokens = splitCommand(line);
         if (tokens.empty()) {
             continue;
-        }
-        for (auto tok : tokens) {
-            std::cerr << tok << std::endl;
         }
         const std::string& command = tokens[0];
         try {
@@ -113,24 +105,25 @@ int main() {
             //账户系统指令
             else if (command == "su") {
                 if (!checkPrivilege(0)) {
-                    std::cerr << "bad priv" << std::endl;
                     std::cout << "Invalid\n";
                     continue;
                 }
                 if (tokens.size() < 2 || tokens.size() > 3) {
-                    std::cerr << "bad size" << std::endl;
                     std::cout << "Invalid\n";
                     continue;
                 }
                 std::string userID = tokens[1];
                 std::string password = tokens.size() == 3 ? tokens[2] : "";
 
-                std::cerr << userID << " " << password << std::endl;
+                // 先保存当前用户的选中图书到登录栈
+                std::string currentSelectedBook = MyBookDatabase.getSelectedISBN();
+                MyUserDatabase.set_selected_book(currentSelectedBook);
 
                 if (MyUserDatabase.Login(userID, password)) {
+                    // 新登录的用户没有选中图书，清空 BookDatabase 的选中状态
+                    MyBookDatabase.setSelectedISBN("");
                     //logOperation("su " + userID);
                 } else {
-                    std::cerr << "bad login" << std::endl;
                     std::cout << "Invalid\n";
                 }
             }
@@ -142,6 +135,9 @@ int main() {
                 }
 
                 if (MyUserDatabase.Logout()) {
+                    // 更新选中的图书为当前登录用户的选中图书
+                    std::string selectedBook = MyUserDatabase.get_selected_book();
+                    MyBookDatabase.setSelectedISBN(selectedBook);
                     //logOperation("logout");
                 } else {
                     std::cout << "Invalid\n";
@@ -273,6 +269,10 @@ int main() {
                         //logOperation("show finance");
                     } else if (tokens.size() == 3) {
                         int count = std::stoi(tokens[2]);
+                        if (count < 0) {
+                            std::cout << "Invalid\n";
+                            continue;
+                        }
                         MyDealDatabase.showDeal(count);
                         //logOperation("show finance " + tokens[2]);
                     } else {
@@ -294,12 +294,14 @@ int main() {
                         books = MyBookDatabase.showAllBooks();
                     }
                     else if (info.size() == 1) {
-                        std::cerr << info.size() << std::endl;
                         auto& it = info[0];
+                        // 检查参数内容是否为空
+                        if (it.second.empty()) {
+                            std::cout << "Invalid\n";
+                            continue;
+                        }
                         if (it.first == "-ISBN") {
-                            std::cerr << it.second << std::endl;
                             Book* book = MyBookDatabase.showBooksByISBN(it.second);
-                            std::cerr << "sa" << std::endl;
                             if (book) {
                                 books.push_back(*book);
                                 delete book;
@@ -324,7 +326,6 @@ int main() {
                     }
 
                     // 输出图书信息
-                    std::cerr << books.size() << std::endl;
                     if (books.empty()) {
                         std::cout << '\n';
                     }
@@ -334,7 +335,6 @@ int main() {
                             std::cout << "\n";
                         }
                     }
-                    std::cerr << "printed" << std::endl;
                     //logOperation("show books");
                 }
             }
@@ -359,7 +359,7 @@ int main() {
                 }
 
                 double expense = MyBookDatabase.Buy(ISBN, quantity);
-                if (expense > 0) {
+                if (expense >= 0) {
                     std::cout << std::fixed << std::setprecision(2) << expense << "\n";
                     MyDealDatabase.addDeal(expense, 0);
                     //logOperation("buy " + ISBN + " " + std::to_string(quantity));
@@ -379,17 +379,13 @@ int main() {
                     continue;
                 }
 
-                std::cerr << "sa1" << std::endl;
                 std::string ISBN = tokens[1];
-                std::cerr << "sa2" << std::endl;
-                MyBookDatabase.Select(ISBN);
-                std::cerr << "sa3" << std::endl;
+                if (!MyBookDatabase.Select(ISBN)) {
+                    std::cout << "Invalid\n";
+                    continue;
+                }
                 std::string selectedISBN = MyBookDatabase.getSelectedISBN();
-                std::cerr << "sa4" << std::endl;
                 MyUserDatabase.set_selected_book(selectedISBN);
-                std::cerr << "sa5" << std::endl;
-                // std::cout << selectedISBN << std::endl;
-                // //logOperation("select " + ISBN);
             }
 
             else if (command == "modify") {
@@ -420,14 +416,28 @@ int main() {
                     continue;
                 }
 
-                // 检查是否选中图书
-                std::string selectedISBN = MyBookDatabase.getSelectedISBN();
-                if (selectedISBN.empty()) {
-                    std::cout << "Invalid \n";
+                // 检查是否有空参数值
+                bool hasEmptyValue = false;
+                for (const auto& it : info) {
+                    if (it.second.empty()) {
+                        hasEmptyValue = true;
+                        break;
+                    }
+                }
+                if (hasEmptyValue || info.empty()) {
+                    std::cout << "Invalid\n";
                     continue;
                 }
 
-                // 逐一修改
+                // 检查是否选中图书
+                std::string selectedISBN = MyBookDatabase.getSelectedISBN();
+                if (selectedISBN.empty()) {
+                    std::cout << "Invalid\n";
+                    continue;
+                }
+
+                // 先验证所有参数的合法性
+                bool allValid = true;
                 for (const auto& it : info) {
                     int type = 0;
                     if (it.first == "-ISBN") type = 1;
@@ -436,12 +446,29 @@ int main() {
                     else if (it.first == "-keyword") type = 4;
                     else if (it.first == "-price") type = 5;
                     else {
-                        std::cout << "Invalid\n";
-                        continue;
+                        allValid = false;
+                        break;
                     }
+                }
+                if (!allValid) {
+                    std::cout << "Invalid\n";
+                    continue;
+                }
+
+                // 逐一修改
+                bool modifyFailed = false;
+                for (const auto& it : info) {
+                    int type = 0;
+                    if (it.first == "-ISBN") type = 1;
+                    else if (it.first == "-name") type = 2;
+                    else if (it.first == "-author") type = 3;
+                    else if (it.first == "-keyword") type = 4;
+                    else if (it.first == "-price") type = 5;
 
                     if (!MyBookDatabase.Modify(type, it.second)) {
                         std::cout << "Invalid\n";
+                        modifyFailed = true;
+                        break;
                     }
                     else if (type == 1) {
                         MyUserDatabase.set_selected_book(it.second);

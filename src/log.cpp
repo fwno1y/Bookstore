@@ -36,6 +36,7 @@ void LogDatabase::addLog(const std::string &operator_ID, const std::string &oper
     cur.Privilege = Privilege;
     log_data.seekp(0,std::ios::end);
     log_data.write(reinterpret_cast<char*>(&cur),sizeof(Log));
+    log_data.flush();
 }
 
 void LogDatabase::generateEmployeeReport() {
@@ -94,6 +95,7 @@ void DealDatabase::addDeal(double income, double expense) {
     Deal deal = Deal(income,expense);
     deal_data.seekp(0,std::ios::end);
     deal_data.write(reinterpret_cast<char*>(&deal),sizeof(Deal));
+    deal_data.flush();
 }
 
 void DealDatabase::showDeal(int count) {
@@ -103,15 +105,17 @@ void DealDatabase::showDeal(int count) {
     }
     deal_data.seekp(0,std::ios::end);
     int end = deal_data.tellp();
-    if (count > 0 && end < count * sizeof(Deal)) {
+    int total_deals = end / sizeof(Deal);
+    if (count > 0 && count > total_deals) {
         std::cout << "Invalid" << '\n';
+        return;
     }
     if (count != -1) {
         end -= static_cast<int>(count * sizeof(Deal));
         deal_data.seekp(end);
     }
     else {
-        count = end / sizeof(Deal);
+        count = total_deals;
         deal_data.seekp(0);
     }
     double total_income = 0,total_expense = 0;
@@ -134,4 +138,3 @@ void DealDatabase::showDeal(int count) {
 void DealDatabase::generateDealReport() {
     showDeal(-1);
 }
-

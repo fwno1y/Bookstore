@@ -20,21 +20,38 @@ private:
     std::string file_name;
     std::vector<CurrentUser> Login_stack;
 
+    // 内存索引：存储每个块的最大UserID和块位置，用于快速定位
+    struct BlockIndex {
+        char max_UserID[31];
+        int block_pos;
+        BlockIndex() : block_pos(-1) { max_UserID[0] = '\0'; }
+    };
+    std::vector<BlockIndex> block_index;  // 按顺序存储所有块的索引
+
     struct BlockNode {
         User users[BLOCKSIZE];
         int size{};
         int next_block{};
+        char max_UserID[31];  // 记录块内最大UserID
 
         BlockNode();
 
         void read(std::fstream& file);
 
         void write(std::fstream& file);
+
+        void updateMaxUserID();
     };
 
     static void read_block(std::fstream& file, BlockNode& node, int pos);
 
     static void write_block(std::fstream& file, BlockNode& node, int pos);
+
+    void rebuildBlockIndex();  // 重建内存中的块索引
+
+    void updateBlockIndex(int block_pos, const char* max_UserID, int after_pos = -1);  // 更新某个块的索引
+
+    int findTargetBlock(const std::string& UserID);  // 根据UserID找到目标块位置
 
     bool insert(const User& user);
 

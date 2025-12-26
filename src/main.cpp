@@ -326,12 +326,26 @@ int main() {
                     continue;
                 }
                 std::string ISBN = tokens[1];
-                int quantity = std::stoi(tokens[2]);
-                if (quantity <= 0) {
+                //去除前导0
+                std::string quantity = tokens[2];
+                int p = 0;
+                for (int i = 0; i < quantity.length(); ++i) {
+                    if (quantity[i] == '0') {
+                        p++;
+                    }
+                    else {
+                        break;
+                    }
+                }
+                if (quantity != "0") {
+                    quantity = quantity.substr(p);
+                }
+                int Quantity = std::stoi(quantity);
+                if (Quantity <= 0) {
                     std::cout << "Invalid\n";
                     continue;
                 }
-                double expense = MyBookDatabase.Buy(ISBN, quantity);
+                double expense = MyBookDatabase.Buy(ISBN, Quantity);
                 if (expense >= 0) {
                     std::cout << std::fixed << std::setprecision(2) << expense << "\n";
                     MyDealDatabase.addDeal(expense, 0);
@@ -450,13 +464,26 @@ int main() {
                     std::cout << "Invalid\n";
                     continue;
                 }
-                int quantity = std::stoi(tokens[1]);
+                std::string quantity = tokens[1];
+                int p = 0;
+                for (int i = 0; i < quantity.length(); ++i) {
+                    if (quantity[i] == '0') {
+                        p++;
+                    }
+                    else {
+                        break;
+                    }
+                }
+                if (quantity != "0") {
+                    quantity = quantity.substr(p);
+                }
+                int Quantity = std::stoi(quantity);
                 double totalCost = std::stod(tokens[2]);
-                if (quantity <= 0 || totalCost <= 0) {
+                if (Quantity <= 0 || totalCost <= 0) {
                     std::cout << "Invalid\n";
                     continue;
                 }
-                if (MyBookDatabase.Import(quantity, totalCost)) {
+                if (MyBookDatabase.Import(Quantity, totalCost)) {
                     MyDealDatabase.addDeal(0, totalCost);
                     //logOperation("import " + std::to_string(quantity));
                 } else {

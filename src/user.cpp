@@ -431,7 +431,7 @@ bool UserDatabase::Register(const std::string &UserID, const std::string &Passwo
         }
     }
     for (char c : Username) {
-        if (c < 32 || c > 126) {
+        if (c <= 32 || c > 126) {
             return false;
         }
     }

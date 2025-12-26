@@ -20,19 +20,21 @@ private:
     std::string file_name;
     std::vector<CurrentUser> Login_stack;
 
-    // 内存索引：存储每个块的最大UserID和块位置，用于快速定位
+    // 内存中的索引：存储每个块的最大UserID和块位置，用于快速定位
     struct BlockIndex {
-        char max_UserID[31];
+        char max_UserID[31]{};
         int block_pos;
-        BlockIndex() : block_pos(-1) { max_UserID[0] = '\0'; }
+
+        BlockIndex();
     };
     std::vector<BlockIndex> block_index;  // 按顺序存储所有块的索引
 
+    //块状链表存储user结构体数组、大小和下一块位置、块内最大UserID
     struct BlockNode {
         User users[BLOCKSIZE];
         int size{};
         int next_block{};
-        char max_UserID[31];  // 记录块内最大UserID
+        char max_UserID[31]{};
 
         BlockNode();
 
@@ -88,6 +90,8 @@ public:
     std::string get_selected_book();
 
     void flush();
+
+    void update_selected_book(const std::string& oldISBN, const std::string& newISBN);//要修改登录栈中其他用户选中
 };
 
 #endif //BOOKSTORE_2025_USER_DATABASE_H

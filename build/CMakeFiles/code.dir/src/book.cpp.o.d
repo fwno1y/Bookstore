@@ -188,6 +188,9 @@ CMakeFiles/code.dir/src/book.cpp.o: \
  /usr/include/c++/13/bits/hashtable.h \
  /usr/include/c++/13/bits/hashtable_policy.h \
  /usr/include/c++/13/bits/enable_special_members.h \
+ /mnt/c/Users/36433/Desktop/课程作业/程序设计/Bookstore-2025/include/user_database.h \
+ /mnt/c/Users/36433/Desktop/课程作业/程序设计/Bookstore-2025/include/user.h \
+ /mnt/c/Users/36433/Desktop/课程作业/程序设计/Bookstore-2025/include/book_database.h \
  /usr/include/c++/13/iomanip /usr/include/c++/13/locale \
  /usr/include/c++/13/bits/locale_facets_nonio.h /usr/include/c++/13/ctime \
  /usr/include/x86_64-linux-gnu/c++/13/bits/time_members.h \

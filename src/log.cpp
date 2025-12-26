@@ -120,7 +120,7 @@ void DealDatabase::showDeal(int count) {
     }
     double total_income = 0,total_expense = 0;
     if (count == 0) {
-        std::cout << "+ " << total_income << " - " << total_expense << '\n';
+        std::cout << "+ " << std::fixed << std::setprecision(2) << total_income << " - " << std::fixed << std::setprecision(2) << total_expense << '\n';
         return;
     }
     if (count > 0) {
@@ -130,7 +130,7 @@ void DealDatabase::showDeal(int count) {
             total_income += deal[i].income;
             total_expense += deal[i].expense;
         }
-        std::cout << "+ " << total_income << " - " << total_expense << '\n';
+        std::cout << "+ " << std::fixed << std::setprecision(2) << total_income << " - " << std::fixed << std::setprecision(2) << total_expense << '\n';
         delete[] deal;
     }
 }

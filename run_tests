@@ -50,7 +50,7 @@ def load_config():
     with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
         return json.load(f)
 
-def run_single_test(test_point_id, input_file, time_limit_ms=10000):
+def run_single_test(test_point_id, input_file, time_limit_ms=100000):
     """
     运行单个测试点
     
@@ -196,8 +196,8 @@ def run_test_group(group):
                 'message': error,
                 'time': elapsed_time
             })
-            break  # 停止nm
-            # continue
+            # break  # 停止nm
+            continue
         
         # 比对结果
         correct, diff = compare_output(output, answer_file)

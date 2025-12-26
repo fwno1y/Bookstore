@@ -10,13 +10,13 @@ BookDatabase MyBookDatabase("book.txt");
 UserDatabase MyUserDatabase("user.txt");
 LogDatabase MyLogDatabase("log.txt");
 DealDatabase MyDealDatabase("deal.txt");
+//分词
 std::vector<std::string> splitCommand(const std::string& command) {
     std::vector<std::string> tokens;
     std::string token;
     bool flag = false;
     for (size_t i = 0; i < command.length(); ++i) {
         char c = command[i];
-
         if (c == '"') {
             flag = !flag;
             token += c;
@@ -52,28 +52,22 @@ void logOperation(const std::string& operation) {
 }
 
 //解析show和modify的参数
-bool parse(const std::vector<std::string>& tokens,
-               std::vector<std::pair<std::string, std::string>>& info) {
+bool parse(const std::vector<std::string>& tokens,std::vector<std::pair<std::string, std::string>>& info) {
     for (int i = 1; i < tokens.size(); ++i) {
         std::string token = tokens[i];
-
         if (token.empty() || token[0] != '-') {
             return false;
         }
-
         int pos = token.find('=');
         if (pos == std::string::npos) {
             return false;
         }
-
         std::string key = token.substr(0, pos);
         std::string value = token.substr(pos + 1);
-
         // 去除value中的双引号
         if (value.length() >= 2 && value[0] == '"' && value.back() == '"') {
             value = value.substr(1, value.length() - 2);
         }
-
         info.emplace_back(key, value);
     }
     return true;
@@ -114,15 +108,12 @@ int main() {
                 }
                 std::string userID = tokens[1];
                 std::string password = tokens.size() == 3 ? tokens[2] : "";
-
                 // 先保存当前用户的选中图书到登录栈
                 std::string currentSelectedBook = MyBookDatabase.getSelectedISBN();
                 MyUserDatabase.set_selected_book(currentSelectedBook);
-
                 if (MyUserDatabase.Login(userID, password)) {
-                    // 新登录的用户没有选中图书，清空 BookDatabase 的选中状态
                     MyBookDatabase.setSelectedISBN("");
-                    //logOperation("su " + userID);
+                    // logOperation("su " + userID);
                 } else {
                     std::cout << "Invalid\n";
                 }
@@ -133,12 +124,11 @@ int main() {
                     std::cout << "Invalid\n";
                     continue;
                 }
-
                 if (MyUserDatabase.Logout()) {
                     // 更新选中的图书为当前登录用户的选中图书
                     std::string selectedBook = MyUserDatabase.get_selected_book();
                     MyBookDatabase.setSelectedISBN(selectedBook);
-                    //logOperation("logout");
+                    // logOperation("logout");
                 } else {
                     std::cout << "Invalid\n";
                 }
@@ -149,18 +139,15 @@ int main() {
                     std::cout << "Invalid\n";
                     continue;
                 }
-
                 if (tokens.size() != 4) {
                     std::cout << "Invalid\n";
                     continue;
                 }
-
                 std::string userID = tokens[1];
                 std::string password = tokens[2];
                 std::string username = tokens[3];
-
                 if (MyUserDatabase.Register(userID, password, username)) {
-                    //logOperation("register " + userID);
+                    // logOperation("register " + userID);
                 } else {
                     std::cout << "Invalid\n";
                 }
@@ -171,15 +158,12 @@ int main() {
                     std::cout << "Invalid\n";
                     continue;
                 }
-
                 if (tokens.size() != 3 && tokens.size() != 4) {
                     std::cout << "Invalid\n";
                     continue;
                 }
-
                 std::string userID = tokens[1];
                 std::string currentPassword, newPassword;
-
                 if (tokens.size() == 3) {
                     // 省略当前密码，只有root可以
                     if (!checkPrivilege(7)) {
@@ -208,22 +192,18 @@ int main() {
                     std::cout << "Invalid\n";
                     continue;
                 }
-
                 if (tokens.size() != 5) {
                     std::cout << "Invalid\n";
                     continue;
                 }
-
                 std::string userID = tokens[1];
                 std::string password = tokens[2];
                 int privilege = std::stoi(tokens[3]);
                 std::string username = tokens[4];
-
                 if (privilege != 1 && privilege != 3 && privilege != 7) {
                     std::cout << "Invalid\n";
                     continue;
                 }
-
                 if (MyUserDatabase.UserAdd(userID, password, privilege, username)) {
                     //logOperation("useradd " + userID);
                 } else {
@@ -236,14 +216,11 @@ int main() {
                     std::cout << "Invalid\n";
                     continue;
                 }
-
                 if (tokens.size() != 2) {
                     std::cout << "Invalid\n";
                     continue;
                 }
-
                 std::string userID = tokens[1];
-
                 if (MyUserDatabase.Delete(userID)) {
                     //logOperation("delete " + userID);
                 } else {
@@ -256,18 +233,17 @@ int main() {
                     std::cout << "Invalid\n";
                     continue;
                 }
-
                 // show finance指令
                 if (tokens.size() >= 2 && tokens[1] == "finance") {
                     if (!checkPrivilege(7)) {
                         std::cout << "Invalid\n";
                         continue;
                     }
-
                     if (tokens.size() == 2) {
                         MyDealDatabase.showDeal(-1);
                         //logOperation("show finance");
-                    } else if (tokens.size() == 3) {
+                    }
+                    else if (tokens.size() == 3) {
                         int count = std::stoi(tokens[2]);
                         if (count < 0) {
                             std::cout << "Invalid\n";
@@ -275,7 +251,8 @@ int main() {
                         }
                         MyDealDatabase.showDeal(count);
                         //logOperation("show finance " + tokens[2]);
-                    } else {
+                    }
+                    else {
                         std::cout << "Invalid\n";
                     }
                 }
@@ -286,9 +263,7 @@ int main() {
                         std::cout << "Invalid\n";
                         continue;
                     }
-
                     std::vector<Book> books;
-
                     if (info.empty()) {
                         // 显示所有图书
                         books = MyBookDatabase.showAllBooks();
@@ -306,11 +281,14 @@ int main() {
                                 books.push_back(*book);
                                 delete book;
                             }
-                        } else if (it.first == "-name") {
+                        }
+                        else if (it.first == "-name") {
                             books = MyBookDatabase.showBooksByName(it.second);
-                        } else if (it.first == "-author") {
+                        }
+                        else if (it.first == "-author") {
                             books = MyBookDatabase.showBooksByAuthor(it.second);
-                        } else if (it.first == "-keyword") {
+                        }
+                        else if (it.first == "-keyword") {
                             if (it.second.find('|') != std::string::npos) {
                                 std::cout << "Invalid\n";
                                 continue;
@@ -324,7 +302,6 @@ int main() {
                         std::cout << "Invalid\n";
                         continue;
                     }
-
                     // 输出图书信息
                     if (books.empty()) {
                         std::cout << '\n';
@@ -344,20 +321,16 @@ int main() {
                     std::cout << "Invalid\n";
                     continue;
                 }
-
                 if (tokens.size() != 3) {
                     std::cout << "Invalid\n";
                     continue;
                 }
-
                 std::string ISBN = tokens[1];
                 int quantity = std::stoi(tokens[2]);
-
                 if (quantity <= 0) {
                     std::cout << "Invalid\n";
                     continue;
                 }
-
                 double expense = MyBookDatabase.Buy(ISBN, quantity);
                 if (expense >= 0) {
                     std::cout << std::fixed << std::setprecision(2) << expense << "\n";
@@ -373,12 +346,10 @@ int main() {
                     std::cout << "Invalid\n";
                     continue;
                 }
-
                 if (tokens.size() != 2) {
                     std::cout << "Invalid\n";
                     continue;
                 }
-
                 std::string ISBN = tokens[1];
                 if (!MyBookDatabase.Select(ISBN)) {
                     std::cout << "Invalid\n";
@@ -393,18 +364,15 @@ int main() {
                     std::cout << "Invalid\n";
                     continue;
                 }
-
                 if (tokens.size() < 2) {
                     std::cout << "Invalid\n";
                     continue;
                 }
-
                 std::vector<std::pair<std::string, std::string>> info;
                 if (!parse(tokens, info)) {
                     std::cout << "Invalid\n";
                     continue;
                 }
-
                 // 检查是否有重复参数
                 std::vector<std::string> parameters;
                 for (const auto& it : info) {
@@ -415,7 +383,6 @@ int main() {
                     std::cout << "Invalid\n";
                     continue;
                 }
-
                 // 检查是否有空参数值
                 bool hasEmptyValue = false;
                 for (const auto& it : info) {
@@ -428,16 +395,14 @@ int main() {
                     std::cout << "Invalid\n";
                     continue;
                 }
-
                 // 检查是否选中图书
                 std::string selectedISBN = MyBookDatabase.getSelectedISBN();
                 if (selectedISBN.empty()) {
                     std::cout << "Invalid\n";
                     continue;
                 }
-
-                // 先验证所有参数的合法性
-                bool allValid = true;
+                // 验证所有参数的合法性
+                bool isInvalid = true;
                 for (const auto& it : info) {
                     int type = 0;
                     if (it.first == "-ISBN") type = 1;
@@ -446,17 +411,17 @@ int main() {
                     else if (it.first == "-keyword") type = 4;
                     else if (it.first == "-price") type = 5;
                     else {
-                        allValid = false;
+                        isInvalid = false;
                         break;
                     }
                 }
-                if (!allValid) {
+                if (!isInvalid) {
                     std::cout << "Invalid\n";
                     continue;
                 }
 
                 // 逐一修改
-                bool modifyFailed = false;
+                bool flag = false;
                 for (const auto& it : info) {
                     int type = 0;
                     if (it.first == "-ISBN") type = 1;
@@ -464,17 +429,15 @@ int main() {
                     else if (it.first == "-author") type = 3;
                     else if (it.first == "-keyword") type = 4;
                     else if (it.first == "-price") type = 5;
-
                     if (!MyBookDatabase.Modify(type, it.second)) {
                         std::cout << "Invalid\n";
-                        modifyFailed = true;
+                        flag = true;
                         break;
                     }
                     else if (type == 1) {
                         MyUserDatabase.set_selected_book(it.second);
                     }
                 }
-
                 //logOperation("modify book");
             }
 
@@ -483,20 +446,16 @@ int main() {
                     std::cout << "Invalid\n";
                     continue;
                 }
-
                 if (tokens.size() != 3) {
                     std::cout << "Invalid\n";
                     continue;
                 }
-
                 int quantity = std::stoi(tokens[1]);
                 double totalCost = std::stod(tokens[2]);
-
                 if (quantity <= 0 || totalCost <= 0) {
                     std::cout << "Invalid\n";
                     continue;
                 }
-
                 if (MyBookDatabase.Import(quantity, totalCost)) {
                     MyDealDatabase.addDeal(0, totalCost);
                     //logOperation("import " + std::to_string(quantity));
@@ -540,9 +499,5 @@ int main() {
             std::cout << "Invalid\n";
         }
     }
-    // std::ofstream("book.txt", std::ios::trunc).close();
-    // std::ofstream("user.txt", std::ios::trunc).close();
-    // std::ofstream("log.txt", std::ios::trunc).close();
-    // std::ofstream("deal.txt", std::ios::trunc).close();
     return 0;
 }

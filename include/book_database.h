@@ -18,20 +18,20 @@ private:
     std::unordered_map<std::string, std::vector<int>> name_map{};
     std::unordered_map<std::string, std::vector<int>> author_map{};
     std::unordered_map<std::string, std::vector<int>> keyword_map{};
-
     // 内存索引：存储每个块的最大ISBN和块位置，用于快速定位
     struct BlockIndex {
-        char max_ISBN[21];
+        char max_ISBN[21]{};
         int block_pos;
-        BlockIndex() : block_pos(-1) { max_ISBN[0] = '\0'; }
+        BlockIndex();
     };
     std::vector<BlockIndex> block_index;  // 按顺序存储所有块的索引
 
+    //块状链表存储book结构体数组和块大小、下一个块位置、块内最大ISBN
     struct BookBlock {
         Book books[BLOCKSIZE];
         int size;
         int next_block;
-        char max_ISBN[21];  // 记录块内最大ISBN，用于快速跳过
+        char max_ISBN[21]{};
 
         BookBlock();
 
@@ -39,16 +39,16 @@ private:
 
         void write(std::fstream& file);
 
-        void updateMaxISBN();  // 更新最大ISBN
+        void updateMaxISBN();
     };
 
     static void read_block(std::fstream& file, BookBlock& block, int pos);
 
     static void write_block(std::fstream& file, BookBlock& block, int pos);
 
-    void rebuildBlockIndex();  // 重建内存中的块索引
+    void rebuildBlockIndex();
 
-    void updateBlockIndex(int block_pos, const char* max_ISBN, int after_pos = -1);  // 更新某个块的索引
+    void updateBlockIndex(int block_pos, const char* max_ISBN, int after_pos = -1);
 
     int findTargetBlock(const std::string& ISBN);  // 根据ISBN找到目标块位置
 
@@ -89,7 +89,6 @@ public:
     bool Delete(const std::string& ISBN);
     //检索图书
     std::vector<Book> showAllBooks();
-
     Book *showBooksByISBN(const std::string &ISBN);
     std::vector<Book> showBooksByName(const std::string& name);
     std::vector<Book> showBooksByAuthor(const std::string& author);
@@ -114,7 +113,6 @@ public:
     bool isValidQuantity(int quantity);
 
     bool isValidPrice(double price);
-
     // 获取选中图书
     std::string getSelectedISBN();
 

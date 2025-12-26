@@ -4,9 +4,8 @@
 #include <iostream>
 #include <fstream>
 #include <cstring>
-// User::write 实际写入 31+31+31+4=97 字节，而不是 sizeof(User)=100 字节
-const int USER_WRITE_SIZE = 31 + 31 + 31 + sizeof(int);  // 97 bytes
-int user_block_size = USER_WRITE_SIZE * BLOCKSIZE + sizeof(int) * 2 + 31;  // +31 for max_UserID
+const int USER_SIZE = 31 * 3 + sizeof(int);//结构体大小
+int user_block_size = USER_SIZE * BLOCKSIZE + sizeof(int) * 2 + 31;//块状链表中块的大小
 
 User::User() = default;
 
@@ -25,10 +24,6 @@ void User::read(std::fstream &file) {
     file.read(Username, 31);
     Username[30] = '\0';
     file.read(reinterpret_cast<char*>(&Privilege), sizeof(int));
-    // file.read(UserID, 30);
-    // file.read(Password,30);
-    // file.read(Username,30);
-    // file.read(reinterpret_cast<char*>(&Privilege),sizeof(int));
 }
 
 void User::write(std::fstream &file) {
@@ -44,6 +39,10 @@ void User::write(std::fstream &file) {
 CurrentUser::CurrentUser(const User &User, const std::string &Book) {
     user = User;
     selected_book = Book;
+}
+
+UserDatabase::BlockIndex::BlockIndex() : block_pos(-1) {
+    max_UserID[0] = '\0';
 }
 
 UserDatabase::BlockNode::BlockNode() : size(0),next_block(-1) {
@@ -63,7 +62,7 @@ void UserDatabase::BlockNode::read(std::fstream& file) {
     file.read(reinterpret_cast<char *> (&size), sizeof(int));
     file.read(reinterpret_cast<char *> (&next_block),sizeof(int));
     file.read(max_UserID, 31);
-    // 读取所有用户槽位（包括未使用的），保证与write对应
+    //读入所有用户，与write对应
     for (int i = 0; i < BLOCKSIZE; ++i) {
         users[i].read(file);
     }
@@ -74,7 +73,7 @@ void UserDatabase::BlockNode::write(std::fstream& file) {
     file.write(reinterpret_cast<char *> (&size),sizeof(int));
     file.write(reinterpret_cast<char *> (&next_block),sizeof(int));
     file.write(max_UserID, 31);
-    // 写入所有用户槽位（包括未使用的），保证块大小固定
+    // 写入所有用户，包括未使用的，保证块的大小固定
     for (int i = 0; i < BLOCKSIZE; ++i) {
         users[i].write(file);
     }
@@ -90,11 +89,12 @@ void UserDatabase::write_block(std::fstream& file, BlockNode &node, int pos) {
     node.write(file);
 }
 
-// 重建内存中的块索引
+// 重建内存中的索引，把每个块的最大user和块位置写入数组
 void UserDatabase::rebuildBlockIndex() {
     block_index.clear();
-    if (!user_file.is_open()) return;
-
+    if (!user_file.is_open()) {
+        return;
+    }
     BlockNode block;
     int pos = 0;
     while (true) {
@@ -104,22 +104,23 @@ void UserDatabase::rebuildBlockIndex() {
         strncpy(idx.max_UserID, block.max_UserID, 30);
         idx.max_UserID[30] = '\0';
         block_index.push_back(idx);
-
-        if (block.next_block == -1) break;
+        if (block.next_block == -1) {
+            break;
+        }
         pos = block.next_block;
     }
 }
 
-// 更新某个块的索引，如果after_pos >= 0，表示新块应该插入到指定块之后
+// 更新某个块的索引
 void UserDatabase::updateBlockIndex(int block_pos, const char* max_UserID, int after_pos) {
-    for (size_t i = 0; i < block_index.size(); ++i) {
+    for (int i = 0; i < block_index.size(); ++i) {
         if (block_index[i].block_pos == block_pos) {
             strncpy(block_index[i].max_UserID, max_UserID, 30);
             block_index[i].max_UserID[30] = '\0';
             return;
         }
     }
-    // 如果不存在，需要添加新索引
+    // 如果不存在，添加新索引
     BlockIndex new_idx;
     new_idx.block_pos = block_pos;
     strncpy(new_idx.max_UserID, max_UserID, 30);
@@ -127,7 +128,7 @@ void UserDatabase::updateBlockIndex(int block_pos, const char* max_UserID, int a
 
     if (after_pos >= 0) {
         // 在指定块之后插入
-        for (size_t i = 0; i < block_index.size(); ++i) {
+        for (int i = 0; i < block_index.size(); ++i) {
             if (block_index[i].block_pos == after_pos) {
                 block_index.insert(block_index.begin() + i + 1, new_idx);
                 return;
@@ -138,19 +139,16 @@ void UserDatabase::updateBlockIndex(int block_pos, const char* max_UserID, int a
     block_index.push_back(new_idx);
 }
 
-// 根据UserID找到目标块位置（只比较内存中的max值，实现根号n复杂度）
+// 根据UserID找到目标块位置,只比较内存中的max值
 int UserDatabase::findTargetBlock(const std::string& UserID) {
     if (block_index.empty()) return 0;
-
-    // block_index 按照链表顺序存储
     // 遍历索引，找到第一个max_UserID >= UserID的块
     for (size_t i = 0; i < block_index.size(); ++i) {
-        // 如果当前块的max为空，跳过
-        if (block_index[i].max_UserID[0] == '\0') continue;
-
-        // 如果UserID <= 当前块的max，或者是最后一个块，就返回这个块
-        if (strcmp(UserID.c_str(), block_index[i].max_UserID) <= 0 ||
-            i == block_index.size() - 1) {
+        if (block_index[i].max_UserID[0] == '\0') {
+            continue;
+        }
+        //找到或最后一块
+        if (strcmp(UserID.c_str(), block_index[i].max_UserID) <= 0 || i == block_index.size() - 1) {
             return block_index[i].block_pos;
         }
     }
@@ -167,27 +165,23 @@ bool UserDatabase::insert(const User& user) {
     if (!user_file.is_open()) {
         return false;
     }
-
-    // 使用内存索引找到目标块位置（只比较内存，不读磁盘）
+    // 使用内存索引找到目标块位置
     int pos = findTargetBlock(user.UserID);
-
     BlockNode cur_block;
     read_block(user_file, cur_block, pos);
-
-    // 二分查找插入位置
-    int l = 0, r = cur_block.size;
-    while (l < r) {
+    // 二分查找插入
+    int l = 0, r = cur_block.size - 1;
+    while (l <= r) {
         int mid = l + (r - l) / 2;
         if (strcmp(cur_block.users[mid].UserID, user.UserID) < 0) {
             l = mid + 1;
-        } else {
-            r = mid;
+        }
+        else {
+            r = mid - 1;
         }
     }
     int insert_pos = l;
-
     if (cur_block.size < BLOCKSIZE) {
-        // 当前块有空间，直接插入
         for (int i = cur_block.size; i > insert_pos; --i) {
             cur_block.users[i] = cur_block.users[i - 1];
         }
@@ -200,34 +194,25 @@ bool UserDatabase::insert(const User& user) {
         // 当前块已满，需要分块
         BlockNode new_block = BlockNode();
         int mid = cur_block.size / 2;
-        int old_next_block = cur_block.next_block;
-
-        // 将后半部分移到新块
+        // 把后半部分移到新块
         for (int i = mid; i < cur_block.size; ++i) {
             new_block.users[new_block.size] = cur_block.users[i];
             new_block.size++;
         }
         cur_block.size = mid;
-
-        // 计算新块位置
+        // 新块位置最后
         user_file.seekp(0, std::ios::end);
         int new_pos = user_file.tellp() / user_block_size;
-
-        // 设置链接
-        new_block.next_block = old_next_block;
+        new_block.next_block = cur_block.next_block;
         cur_block.next_block = new_pos;
-
         // 写回两个块
         write_block(user_file, cur_block, pos);
         write_block(user_file, new_block, new_pos);
-
-        // 更新内存中的块索引：先更新当前块，再添加新块
+        // 更新内存中的块索引
         updateBlockIndex(pos, cur_block.max_UserID);
         updateBlockIndex(new_pos, new_block.max_UserID, pos);
-
         // 确定在哪个块插入
         if (insert_pos < mid) {
-            // 插入到当前块（cur_block）
             for (int i = cur_block.size; i > insert_pos; --i) {
                 cur_block.users[i] = cur_block.users[i - 1];
             }
@@ -237,7 +222,6 @@ bool UserDatabase::insert(const User& user) {
             updateBlockIndex(pos, cur_block.max_UserID);
         }
         else {
-            // 插入到新块（new_block）
             int new_insert_pos = insert_pos - mid;
             for (int i = new_block.size; i > new_insert_pos; --i) {
                 new_block.users[i] = new_block.users[i - 1];
@@ -248,7 +232,6 @@ bool UserDatabase::insert(const User& user) {
             updateBlockIndex(new_pos, new_block.max_UserID);
         }
     }
-
     user_file.flush();
     return true;
 }
@@ -257,14 +240,9 @@ bool UserDatabase::erase(const std::string &UserID) {
     if (!user_file.is_open()) {
         return false;
     }
-
-    // 使用内存索引找到目标块位置
     int pos = findTargetBlock(UserID);
-
     BlockNode cur_block, next_block;
     read_block(user_file, cur_block, pos);
-
-    // 在该块中使用二分查找
     int l = 0, r = cur_block.size - 1;
     int erase_pos = -1;
     while (l <= r) {
@@ -279,24 +257,21 @@ bool UserDatabase::erase(const std::string &UserID) {
             break;
         }
     }
-
     if (erase_pos == -1) {
         return false;
     }
-
     for (int i = erase_pos; i < cur_block.size - 1; ++i) {
         cur_block.users[i] = cur_block.users[i + 1];
     }
     cur_block.size--;
-
-    // 尝试合并
+    //尝试合并
     if (cur_block.size < BLOCKSIZE / 4 && cur_block.next_block != -1) {
         read_block(user_file, next_block, cur_block.next_block);
         if (cur_block.size + next_block.size < BLOCKSIZE) {
-            // 需要从block_index中移除被合并的块
             int merged_pos = cur_block.next_block;
             for (int i = 0; i < next_block.size; ++i) {
-                cur_block.users[cur_block.size++] = next_block.users[i];
+                cur_block.users[cur_block.size] = next_block.users[i];
+                cur_block.size++;
             }
             cur_block.next_block = next_block.next_block;
             write_block(user_file, cur_block, pos);
@@ -312,7 +287,6 @@ bool UserDatabase::erase(const std::string &UserID) {
             return true;
         }
     }
-
     write_block(user_file, cur_block, pos);
     updateBlockIndex(pos, cur_block.max_UserID);
     user_file.flush();
@@ -323,14 +297,9 @@ User *UserDatabase::find(const std::string &UserID) {
     if (!user_file.is_open()) {
         return nullptr;
     }
-
-    // 使用内存索引找到目标块位置（只比较内存，不读磁盘）
     int pos = findTargetBlock(UserID);
-
     BlockNode cur_block;
     read_block(user_file, cur_block, pos);
-
-    // 在该块中使用二分查找
     int l = 0, r = cur_block.size - 1;
     while (l <= r) {
         int mid = l + (r - l) / 2;
@@ -354,14 +323,9 @@ bool UserDatabase::update(const User &user) {
     if (!user_file.is_open()) {
         return false;
     }
-
-    // 使用内存索引找到目标块位置
     int pos = findTargetBlock(user.UserID);
-
     BlockNode cur_block;
     read_block(user_file, cur_block, pos);
-
-    // 在该块中使用二分查找
     int l = 0, r = cur_block.size - 1;
     while (l <= r) {
         int mid = l + (r - l) / 2;
@@ -371,7 +335,6 @@ bool UserDatabase::update(const User &user) {
         } else if (cmp < 0) {
             l = mid + 1;
         } else {
-            // 找到用户，更新信息
             cur_block.users[mid] = user;
             write_block(user_file, cur_block, pos);
             user_file.flush();
@@ -396,37 +359,6 @@ UserDatabase::~UserDatabase() {
     }
 }
 
-// void UserDatabase::initialize() {
-//     user_file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
-//     if (!user_file) {
-//         // 文件不存在，创建并初始化
-//         user_file.open(file_name, std::ios::out | std::ios::binary);
-//         user_file.close();
-//         user_file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
-//
-//         //写入第一个块
-//         BlockNode headblock;
-//         headblock.size = 1;
-//         headblock.next_block = -1;
-//         //创建店主root账户
-//         User root = User("root","sjtu",7,"shopkeeper");
-//         headblock.users[0] = root;
-//         write_block(user_file,headblock,0);
-//     } else {
-//         // 文件已存在，检查是否为空
-//         user_file.seekg(0, std::ios::end);
-//         if (user_file.tellg() == 0) {
-//             // 文件为空，需要初始化
-//             BlockNode headblock;
-//             headblock.size = 1;
-//             headblock.next_block = -1;
-//             User root = User("root","sjtu",7,"shopkeeper");
-//             headblock.users[0] = root;
-//             write_block(user_file,headblock,0);
-//         }
-//     }
-//     user_file.close();
-// }
 void UserDatabase::initialize() {
     user_file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
     if (!user_file) {
@@ -445,10 +377,8 @@ void UserDatabase::initialize() {
         headblock.users[0] = root;
         write_block(user_file,headblock,0);
     }
-
     // 重建内存中的块索引
     rebuildBlockIndex();
-    // 保持文件打开
 }
 
 bool UserDatabase::Login(const std::string &UserID, const std::string &Password) {
@@ -458,38 +388,30 @@ bool UserDatabase::Login(const std::string &UserID, const std::string &Password)
     }
     CurrentUser cur_user = CurrentUser(*user,"");
     int cur_Privilege = getCurrentPrivilege();
-    bool canLogin = false;
+    bool flag = false;
+    //权限够高
     if (cur_Privilege > user->Privilege) {
-        canLogin = true;  // 特权更高，无需密码
-    } else if (strcmp(Password.c_str(), user->Password) == 0) {
-        canLogin = true;  // 密码正确
+        flag = true;
     }
-    if (canLogin) {
+    //密码正确
+    else if (strcmp(Password.c_str(), user->Password) == 0) {
+        flag = true;
+    }
+    if (flag) {
         Login_stack.push_back(cur_user);
         delete user;
         return true;
     }
-    // if (cur_Privilege > user->Privilege || strcmp(Password.c_str(),user->Password) == 0) {
-    //     Login_stack.push_back(cur_user);
-    //     delete user;
-    //     return true;
-    // }
-    //判断已经登录但是被覆盖
-    // for (int i = 0; i < Login_stack.size(); ++i) {
-    //     if (strcmp(Login_stack[i].user.UserID, UserID.c_str()) == 0) {
-    //         Login_stack.push_back(cur_user);
-    //         delete user;
-    //         return true;
-    //     }
-    // }
     delete user;
     return false;
 }
 
 bool UserDatabase::Logout() {
+    //无登录用户
     if (Login_stack.empty()) {
         return false;
     }
+    //弹出登录栈最后一个
     Login_stack.pop_back();
     return true;
 }
@@ -503,34 +425,33 @@ bool UserDatabase::Register(const std::string &UserID, const std::string &Passwo
             return false;
         }
     }
-
     for (char c : Password) {
         if (!(isdigit(c) || isalpha(c) || c == '_')) {
             return false;
         }
     }
-
     for (char c : Username) {
         if (c < 32 || c > 126) {
             return false;
         }
     }
-
+    //看UserID是否已经被注册
     User* exist = find(UserID);
     if (exist != nullptr) {
         delete exist;
         return false;
     }
-
     User new_user = User(UserID,Password,1,Username);
     return insert(new_user);
 }
 
 bool UserDatabase::ChangePassword(const std::string &UserID, const std::string &CurrentPassword, const std::string &NewPassword) {
+    //判断账户是否存在
     User* user = find(UserID);
     if (user == nullptr) {
         return false;
     }
+    //权限够或者密码正确
     int cur_Privilege = getCurrentPrivilege();
     if (cur_Privilege == 7 || strcmp(user->Password,CurrentPassword.c_str()) == 0) {
         strcpy(user->Password,NewPassword.c_str());
@@ -543,6 +464,7 @@ bool UserDatabase::ChangePassword(const std::string &UserID, const std::string &
 }
 
 bool UserDatabase::UserAdd(const std::string &UserID, const std::string &Password, int Privilege, const std::string &Username) {
+    //权限是否足够
     int cur_Privilege = getCurrentPrivilege();
     if (cur_Privilege <= Privilege) {
         return false;
@@ -565,6 +487,7 @@ bool UserDatabase::UserAdd(const std::string &UserID, const std::string &Passwor
             return false;
         }
     }
+    //判断UserID是否已被注册
     User* exist = find(UserID);
     if (exist != nullptr) {
         delete exist;
@@ -575,17 +498,19 @@ bool UserDatabase::UserAdd(const std::string &UserID, const std::string &Passwor
 }
 
 bool UserDatabase::Delete(const std::string &UserID) {
+    //权限要7
     int cur_Privilege = getCurrentPrivilege();
-
     if (cur_Privilege != 7) {
         return false;
     }
+    //判断账户是否存在
     User* exist = find(UserID);
     if (exist == nullptr) {
         delete exist;
         return false;
     }
     bool flag = false;
+    //判断是否在登录栈中
     for (int i = 0; i < Login_stack.size(); ++i) {
         if (strcmp(Login_stack[i].user.UserID, UserID.c_str()) == 0) {
             flag = true;
@@ -597,7 +522,7 @@ bool UserDatabase::Delete(const std::string &UserID) {
     }
     return erase(UserID);
 }
-
+//获取当前用户
 User * UserDatabase::getCurrentUser() {
     if (Login_stack.empty()) {
         return nullptr;
@@ -606,30 +531,38 @@ User * UserDatabase::getCurrentUser() {
     *user = Login_stack.back().user;
     return user;
 }
-
+//获取当前权限
 int UserDatabase::getCurrentPrivilege() {
     if (Login_stack.empty()) {
         return 0;
     }
     return Login_stack.back().user.Privilege;
 }
-
+//设置选中图书
 void UserDatabase::set_selected_book(const std::string& ISBN) {
     if (Login_stack.empty()) {
         return;
     }
     Login_stack.back().selected_book = ISBN;
 }
-
+//获取选中图书
 std::string UserDatabase::get_selected_book() {
     if (Login_stack.empty()) {
         return "";
     }
     return Login_stack.back().selected_book;
 }
-
+//将缓冲区内的数据写入文件
 void UserDatabase::flush() {
     if (user_file.is_open()) {
         user_file.flush();
+    }
+}
+//更新登录栈中其他用户的选中图书ISBN
+void UserDatabase::update_selected_book(const std::string &oldISBN, const std::string &newISBN) {
+    for (auto& userState : Login_stack) {
+        if (userState.selected_book == oldISBN) {
+            userState.selected_book = newISBN;
+        }
     }
 }

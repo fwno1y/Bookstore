@@ -195,7 +195,7 @@ int main() {
         if (line.back() == '\r') {
             line.pop_back();
         }
-        if (line.find('\t') != std::string::npos) {
+        if (line.find('\t') != std::string::npos && line.find('\t') != line.size() - 1) {
             std::cout << "Invalid\n";
             continue;
         }

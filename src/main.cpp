@@ -43,6 +43,80 @@ bool checkPrivilege(int required) {
     return cur >= required;
 }
 
+// 检查是否为纯数字字符串
+bool isDigitString(const std::string& s) {
+    if (s.empty()) {
+        return false;
+    }
+    for (char c : s) {
+        if (!isdigit(c)) return false;
+    }
+    return true;
+}
+
+// 检查是否为正整数
+bool isPositiveInt(const std::string& s, int& result) {
+    if (!isDigitString(s)) {
+        return false;
+    }
+    if (s.length() > 10) {
+        return false;
+    }
+    try {
+        long long val = std::stoll(s);
+        if (val <= 0 || val > 2147483647) return false;
+        result = static_cast<int>(val);
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
+
+bool isNotNegativeInt(const std::string& s, int& result) {
+    if (!isDigitString(s)) {
+        return false;
+    }
+    if (s.length() > 10) {
+        return false;
+    }
+    try {
+        long long val = std::stoll(s);
+        if (val < 0 || val > 2147483647) return false;
+        result = static_cast<int>(val);
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
+// 检查小数点
+bool checkDot(const std::string& s, double& result) {
+    if (s.empty() || s.length() > 13) return false;
+    bool flag = false;
+    for (size_t i = 0; i < s.length(); ++i) {
+        char c = s[i];
+        if (c == '.') {
+            if (flag) {
+                return false;
+            }
+            flag = true;
+        } else if (!isdigit(c)) {
+            return false;
+        }
+    }
+    if (s[0] == '.' || s.back() == '.' || s == ".") return false;
+    try {
+        result = std::stod(s);
+        if (result <= 0) {
+            return false;
+        }
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
 // 记录日志
 void logOperation(const std::string& operation) {
     User* currentUser = MyUserDatabase.getCurrentUser();
@@ -103,7 +177,7 @@ bool parse(const std::vector<std::string>& tokens,std::vector<std::pair<std::str
             }
         }
         else {
-            return false; // 未知参数
+            return false;
         }
         info.emplace_back(key, value);
     }
@@ -241,7 +315,12 @@ int main() {
                 }
                 std::string userID = tokens[1];
                 std::string password = tokens[2];
-                int privilege = std::stoi(tokens[3]);
+                // 验证 privilege 是否为合法值
+                if (tokens[3].length() != 1 || !isdigit(tokens[3][0])) {
+                    std::cout << "Invalid\n";
+                    continue;
+                }
+                int privilege = tokens[3][0] - '0';
                 std::string username = tokens[4];
                 if (privilege != 1 && privilege != 3 && privilege != 7) {
                     std::cout << "Invalid\n";
@@ -287,8 +366,8 @@ int main() {
                         //logOperation("show finance");
                     }
                     else if (tokens.size() == 3) {
-                        int count = std::stoi(tokens[2]);
-                        if (count < 0) {
+                        int count;
+                        if (!isNotNegativeInt(tokens[2], count)) {
                             std::cout << "Invalid\n";
                             continue;
                         }
@@ -369,22 +448,8 @@ int main() {
                     continue;
                 }
                 std::string ISBN = tokens[1];
-                //去除前导0
-                std::string quantity = tokens[2];
-                int p = 0;
-                for (int i = 0; i < quantity.length(); ++i) {
-                    if (quantity[i] == '0') {
-                        p++;
-                    }
-                    else {
-                        break;
-                    }
-                }
-                if (quantity != "0") {
-                    quantity = quantity.substr(p);
-                }
-                int Quantity = std::stoi(quantity);
-                if (Quantity <= 0) {
+                int Quantity;
+                if (!isPositiveInt(tokens[2], Quantity)) {
                     std::cout << "Invalid\n";
                     continue;
                 }
@@ -507,22 +572,14 @@ int main() {
                     std::cout << "Invalid\n";
                     continue;
                 }
-                std::string quantity = tokens[1];
-                int p = 0;
-                for (int i = 0; i < quantity.length(); ++i) {
-                    if (quantity[i] == '0') {
-                        p++;
-                    }
-                    else {
-                        break;
-                    }
+                // 验证 quantity 是否为合法正整数
+                int Quantity;
+                if (!isPositiveInt(tokens[1], Quantity)) {
+                    std::cout << "Invalid\n";
+                    continue;
                 }
-                if (quantity != "0") {
-                    quantity = quantity.substr(p);
-                }
-                int Quantity = std::stoi(quantity);
-                double totalCost = std::stod(tokens[2]);
-                if (Quantity <= 0 || totalCost <= 0) {
+                double totalCost;
+                if (!checkDot(tokens[2], totalCost)) {
                     std::cout << "Invalid\n";
                     continue;
                 }

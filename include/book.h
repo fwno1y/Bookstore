@@ -8,7 +8,7 @@ struct Book {
     char ISBN[21]{};
     char BookName[61]{};
     char Author[61]{};
-    char Keyword[61]{};
+    char Keyword[300]{};
     int Quantity{};
     double Price{};
 

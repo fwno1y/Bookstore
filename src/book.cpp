@@ -11,7 +11,7 @@
 
 extern UserDatabase MyUserDatabase;
 
-const int BOOK_SIZE = 20 + 60 * 3 + sizeof(int) + sizeof(double);
+const int BOOK_SIZE = 20 + 60 * 2 + 300 + sizeof(int) + sizeof(double);
 int book_block_size = BOOK_SIZE * BLOCKSIZE + sizeof(int) * 2 + 21;
 
 Book::Book() = default;
@@ -33,15 +33,15 @@ Book::Book(const std::string &ISBN, const std::string &Bookname, const std::stri
     this->BookName[60] = '\0';
     strncpy(this->Author, Author.c_str(), 60);
     this->Author[60] = '\0';
-    strncpy(this->Keyword, Keyword.c_str(), 60);
-    this->Keyword[60] = '\0';
+    strncpy(this->Keyword, Keyword.c_str(), 299);
+    this->Keyword[299] = '\0';
 }
 
 void Book::read(std::fstream &file) {
     file.read(ISBN, 20);
     file.read(BookName, 60);
     file.read(Author, 60);
-    file.read(Keyword, 60);
+    file.read(Keyword, 300);
     file.read(reinterpret_cast<char*>(&Quantity), sizeof(int));
     file.read(reinterpret_cast<char*>(&Price), sizeof(double));
 }
@@ -50,7 +50,7 @@ void Book::write(std::fstream &file) {
     file.write(ISBN, 20);
     file.write(BookName, 60);
     file.write(Author, 60);
-    file.write(Keyword, 60);
+    file.write(Keyword, 300);
     file.write(reinterpret_cast<char*>(&Quantity), sizeof(int));
     file.write(reinterpret_cast<char*>(&Price), sizeof(double));
 }
@@ -58,7 +58,7 @@ void Book::write(std::fstream &file) {
 std::vector<std::string> Book::getKeywords() const {
     std::vector<std::string> keywords;
     std::string keyword;
-    for (int i = 0; i < 60 && Keyword[i] != '\0'; ++i) {
+    for (int i = 0; i < 300 && Keyword[i] != '\0'; ++i) {
         if (Keyword[i] != '|') {
             keyword += Keyword[i];
         }
@@ -829,8 +829,8 @@ bool BookDatabase::Modify(int type, const std::string &info) {
                 delete book;
                 return false;
             }
-            strncpy(book->Keyword, info.c_str(), 60);
-            book->Keyword[60] = '\0';
+            strncpy(book->Keyword, info.c_str(), 299);
+            book->Keyword[299] = '\0';
             success = updateBook(*book);
             break;
         case 5: { // 修改价格

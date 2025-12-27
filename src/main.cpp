@@ -81,7 +81,7 @@ bool parse(const std::vector<std::string>& tokens,std::vector<std::pair<std::str
             if (value.empty()) {
                 return false;
             }
-            //检查小数点 
+            //检查小数点
             if (key == "-price") {
                 bool flag = false;
                 for (char c : value) {
@@ -120,6 +120,10 @@ int main() {
         }
         if (line.back() == '\r') {
             line.pop_back();
+        }
+        if (line.find('\t') != std::string::npos) {
+            std::cout << "Invalid\n";
+            continue;
         }
         std::vector<std::string> tokens = splitCommand(line);
         if (tokens.empty()) {

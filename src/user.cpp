@@ -389,12 +389,11 @@ bool UserDatabase::Login(const std::string &UserID, const std::string &Password)
     CurrentUser cur_user = CurrentUser(*user,"");
     int cur_Privilege = getCurrentPrivilege();
     bool flag = false;
-    //权限够高
-    if (cur_Privilege > user->Privilege) {
+    if (Password.empty() && cur_Privilege > user->Privilege) {
         flag = true;
     }
-    //密码正确
-    else if (strcmp(Password.c_str(), user->Password) == 0) {
+    // 提供了密码，必须正确
+    else if (!Password.empty() && strcmp(Password.c_str(), user->Password) == 0) {
         flag = true;
     }
     if (flag) {

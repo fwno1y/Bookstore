@@ -450,6 +450,17 @@ bool UserDatabase::ChangePassword(const std::string &UserID, const std::string &
     if (user == nullptr) {
         return false;
     }
+    // 验证新密码格式
+    if (NewPassword.length() > 30) {
+        delete user;
+        return false;
+    }
+    for (char c : NewPassword) {
+        if (!(isdigit(c) || isalpha(c) || c == '_')) {
+            delete user;
+            return false;
+        }
+    }
     //权限够或者密码正确
     int cur_Privilege = getCurrentPrivilege();
     if (cur_Privilege == 7 || strcmp(user->Password,CurrentPassword.c_str()) == 0) {

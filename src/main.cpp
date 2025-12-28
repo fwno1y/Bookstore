@@ -322,7 +322,7 @@ int main() {
                 }
                 int privilege = tokens[3][0] - '0';
                 std::string username = tokens[4];
-                if (privilege != 1 && privilege != 3 && privilege != 7) {
+                if (privilege != 1 && privilege != 3) {//不能创建7的
                     std::cout << "Invalid\n";
                     continue;
                 }

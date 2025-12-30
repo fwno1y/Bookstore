@@ -1,3 +1,0 @@
-/mnt/c/Users/36433/Desktop/课程作业/程序设计/Bookstore-2025/build/CMakeFiles/code.dir
-/mnt/c/Users/36433/Desktop/课程作业/程序设计/Bookstore-2025/build/CMakeFiles/edit_cache.dir
-/mnt/c/Users/36433/Desktop/课程作业/程序设计/Bookstore-2025/build/CMakeFiles/rebuild_cache.dir

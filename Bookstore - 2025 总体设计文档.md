@@ -140,7 +140,7 @@ Part V 数据库设计
 2. 图书数据库
 - 需要存储的数据：所有库存的图书，每一本图书以键值对形式，其中`ISBN`为key，`Bookname`,`Author`,`Keyword`,`Price`，`Quantity`为value
 
-- 存储方式：块状链表
+- 存储方式：块状链表+索引表
 3. 日志数据库
 - 需要存储的数据：按照操作时间存入所有系统执行的操作，包括`UserID`,`Operationtype`,`Income`，`Expense`。
 

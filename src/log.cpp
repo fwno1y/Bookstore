@@ -8,8 +8,10 @@
 Log::Log() = default;
 
 Log::Log(const std::string &operator_ID, const std::string &operation, int Privilege) {
-    strcpy(this->operator_ID,operator_ID.c_str());
-    strcpy(this->operation,operation.c_str());
+    strncpy(this->operator_ID, operator_ID.c_str(), 60);
+    this->operator_ID[60] = '\0';
+    strncpy(this->operation, operation.c_str(), 255);
+    this->operation[255] = '\0';
     this->Privilege = Privilege;
 }
 
@@ -30,10 +32,7 @@ LogDatabase::~LogDatabase() {
 }
 
 void LogDatabase::addLog(const std::string &operator_ID, const std::string &operation, int Privilege) {
-    Log cur;
-    std::strcpy(cur.operator_ID,operator_ID.c_str());
-    std::strcpy(cur.operation,operation.c_str());
-    cur.Privilege = Privilege;
+    Log cur(operator_ID,operation,Privilege);
     log_data.seekp(0,std::ios::end);
     log_data.write(reinterpret_cast<char*>(&cur),sizeof(Log));
     log_data.flush();
@@ -124,7 +123,7 @@ void DealDatabase::showDeal(int count) {
         return;
     }
     if (count > 0) {
-        Deal* deal = new Deal[count + 3];
+        Deal* deal = new Deal[count + 1];
         deal_data.read(reinterpret_cast<char *>(deal),count * sizeof(Deal));
         for (int i = 0; i < count; ++i) {
             total_income += deal[i].income;

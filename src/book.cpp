@@ -155,8 +155,9 @@ void BookDatabase::write_block(std::fstream &file, BookBlock &block, int pos) {
 
 void BookDatabase::rebuildBlockIndex() {
     block_index.clear();
-    if (!book_file.is_open()) return;
-
+    if (!book_file.is_open()) {
+        return;
+    }
     BookBlock block;
     int pos = 0;
     while (true) {
@@ -455,6 +456,21 @@ std::vector<Book> BookDatabase::findBooksByBookname(const std::string &bookname)
     if (!book_file.is_open()) {
         return res;
     }
+    // auto it = name_map.find(bookname);
+    // if (it == name_map.end()) {
+    //     return res;
+    // }
+    // const std::vector<int>& relevant_blocks = it->second;
+    // for (int block_pos : relevant_blocks) {
+    //     BookBlock cur_block;
+    //     read_block(book_file, cur_block, block_pos);
+    //     for (int i = 0; i < cur_block.size; ++i) {
+    //         if (strcmp(cur_block.books[i].BookName, bookname.c_str()) == 0) {
+    //             res.push_back(cur_block.books[i]);
+    //         }
+    //     }
+    // }
+    // return res;
     BookBlock cur_block;
     int pos = 0;
     // 遍历所有块
@@ -476,6 +492,21 @@ std::vector<Book> BookDatabase::findBooksByAuthor(const std::string &author) {
     if (!book_file.is_open()) {
         return res;
     }
+    // auto it = author_map.find(author);
+    // if (it == author_map.end()) {
+    //     return res;
+    // }
+    // const std::vector<int>& relevant_blocks = it->second;
+    // for (int block_pos : relevant_blocks) {
+    //     BookBlock cur_block;
+    //     read_block(book_file, cur_block, block_pos);
+    //     for (int i = 0; i < cur_block.size; ++i) {
+    //         if (strcmp(cur_block.books[i].Author, author.c_str()) == 0) {
+    //             res.push_back(cur_block.books[i]);
+    //         }
+    //     }
+    // }
+    // return res;
     BookBlock cur_block;
     int pos = 0;
     // 遍历所有块
@@ -497,6 +528,21 @@ std::vector<Book> BookDatabase::findBooksByKeyword(const std::string &keyword) {
     if (!book_file.is_open()) {
         return res;
     }
+    // auto it = keyword_map.find(keyword);
+    // if (it == keyword_map.end()) {
+    //     return res;
+    // }
+    // const std::vector<int>& relevant_blocks = it->second;
+    // for (int block_pos : relevant_blocks) {
+    //     BookBlock cur_block;
+    //     read_block(book_file, cur_block, block_pos);
+    //     for (int i = 0; i < cur_block.size; ++i) {
+    //         if (cur_block.books[i].includeKeyword(keyword) && strlen(cur_block.books[i].ISBN) > 0) {
+    //             res.push_back(cur_block.books[i]);
+    //         }
+    //     }
+    // }
+    // return res;
     BookBlock cur_block;
     int pos = 0;
     // 遍历所有块

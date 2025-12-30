@@ -203,8 +203,10 @@ void BookDatabase::updateBlockIndex(int block_pos, const char* max_ISBN, int aft
 
 int BookDatabase::findTargetBlock(const std::string& ISBN) {
     if (block_index.empty()) return 0;
-    for (size_t i = 0; i < block_index.size(); ++i) {
-        if (block_index[i].max_ISBN[0] == '\0') continue;
+    for (int i = 0; i < block_index.size(); ++i) {
+        if (block_index[i].max_ISBN[0] == '\0') {
+            continue;
+        }
         if (strcmp(ISBN.c_str(), block_index[i].max_ISBN) <= 0 ||
             i == block_index.size() - 1) {
             return block_index[i].block_pos;

@@ -264,7 +264,7 @@ int main() {
                 std::string password = tokens[2];
                 std::string username = tokens[3];
                 if (MyUserDatabase.Register(userID, password, username)) {
-                    // logOperation("register " + userID);
+                    logOperation("register " + userID);
                 } else {
                     std::cout << "Invalid\n";
                 }
@@ -291,7 +291,7 @@ int main() {
                     if (!MyUserDatabase.ChangePassword(userID, "", newPassword)) {
                         std::cout << "Invalid\n";
                     } else {
-                        //logOperation("passwd " + userID);
+                        logOperation("passwd " + userID);
                     }
                 } else {
                     currentPassword = tokens[2];
@@ -299,7 +299,7 @@ int main() {
                     if (!MyUserDatabase.ChangePassword(userID, currentPassword, newPassword)) {
                         std::cout << "Invalid\n";
                     } else {
-                        //logOperation("passwd " + userID);
+                        logOperation("passwd " + userID);
                     }
                 }
             }
@@ -327,7 +327,7 @@ int main() {
                     continue;
                 }
                 if (MyUserDatabase.UserAdd(userID, password, privilege, username)) {
-                    //logOperation("useradd " + userID);
+                    logOperation("useradd " + userID);
                 } else {
                     std::cout << "Invalid\n";
                 }
@@ -344,7 +344,7 @@ int main() {
                 }
                 std::string userID = tokens[1];
                 if (MyUserDatabase.Delete(userID)) {
-                    //logOperation("delete " + userID);
+                    logOperation("delete " + userID);
                 } else {
                     std::cout << "Invalid\n";
                 }
@@ -363,7 +363,7 @@ int main() {
                     }
                     if (tokens.size() == 2) {
                         MyDealDatabase.showDeal(-1);
-                        //logOperation("show finance");
+                        logOperation("show finance");
                     }
                     else if (tokens.size() == 3) {
                         int count;
@@ -372,7 +372,7 @@ int main() {
                             continue;
                         }
                         MyDealDatabase.showDeal(count);
-                        //logOperation("show finance " + tokens[2]);
+                        logOperation("show finance " + tokens[2]);
                     }
                     else {
                         std::cout << "Invalid\n";
@@ -434,7 +434,7 @@ int main() {
                             std::cout << "\n";
                         }
                     }
-                    //logOperation("show books");
+                    logOperation("show books");
                 }
             }
 
@@ -457,7 +457,7 @@ int main() {
                 if (expense >= 0) {
                     std::cout << std::fixed << std::setprecision(2) << expense << "\n";
                     MyDealDatabase.addDeal(expense, 0);
-                    //logOperation("buy " + ISBN + " " + std::to_string(quantity));
+                    logOperation("buy " + ISBN + " " + std::to_string(Quantity));
                 } else {
                     std::cout << "Invalid\n";
                 }
@@ -560,7 +560,7 @@ int main() {
                         MyUserDatabase.set_selected_book(it.second);
                     }
                 }
-                //logOperation("modify book");
+                logOperation("modify book");
             }
 
             else if (command == "import") {
@@ -585,7 +585,7 @@ int main() {
                 }
                 if (MyBookDatabase.Import(Quantity, totalCost)) {
                     MyDealDatabase.addDeal(0, totalCost);
-                    //logOperation("import " + std::to_string(quantity));
+                    logOperation("import " + std::to_string(Quantity));
                 } else {
                     std::cout << "Invalid\n";
                 }
@@ -597,7 +597,7 @@ int main() {
                     continue;
                 }
                 MyLogDatabase.generateLogReport();
-                //logOperation("log");
+                logOperation("log");
             }
 
             else if (command == "report") {
@@ -611,10 +611,10 @@ int main() {
                 }
                 if (tokens[1] == "finance") {
                     MyDealDatabase.generateDealReport();
-                    //logOperation("report finance");
+                    logOperation("report finance");
                 } else if (tokens[1] == "employee") {
                     MyLogDatabase.generateEmployeeReport();
-                    //logOperation("report employee");
+                    logOperation("report employee");
                 } else {
                     std::cout << "Invalid\n";
                 }
